@@ -1,12 +1,11 @@
-from django.urls import path
-from .views import (
-    AppointmentListView, AppointmentDetailView,
-    cancel_appointment, upcoming_appointments
-)
+# appointments/urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import AppointmentViewSet
+
+router = DefaultRouter()
+router.register(r'appointments', AppointmentViewSet, basename='appointment')
 
 urlpatterns = [
-    path('', AppointmentListView.as_view(), name='appointment-list'),
-    path('<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
-    path('<int:pk>/cancel/', cancel_appointment, name='cancel-appointment'),
-    path('upcoming/', upcoming_appointments, name='upcoming-appointments'),
+    path('', include(router.urls)),
 ]
