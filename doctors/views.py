@@ -1,7 +1,10 @@
+from django.db.models import Count
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_http_methods
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Doctor, DoctorSchedule
@@ -99,3 +102,71 @@ def doctor_schedule(request, pk):
             serializer.save(doctor=doctor)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@require_http_methods(["GET"])
+def doctor_specialties_list(request):
+    """
+    Возвращает список всех доступных специальностей врачей
+    """
+    try:
+        # Получаем все специальности из модели Doctor
+        specialties = []
+        for specialty_code, specialty_name in Doctor.SPECIALTIES:
+            specialties.append({
+                'value': specialty_code,
+                'label': specialty_name
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'data': specialties,
+            'count': len(specialties)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+
+@require_http_methods(["GET"])
+def doctor_specialties_with_stats(request):
+    """
+    Возвращает список специальностей с количеством врачей в каждой
+    """
+    try:
+        # Получаем статистику по специальностям
+        specialty_stats = Doctor.objects.values('specialty').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Создаем словарь для быстрого поиска
+        stats_dict = {item['specialty']: item['count'] for item in specialty_stats}
+        
+        # Формируем полный список специальностей
+        specialties = []
+        for specialty_code, specialty_name in Doctor.SPECIALTIES:
+            specialties.append({
+                'value': specialty_code,
+                'label': specialty_name,
+                'count': stats_dict.get(specialty_code, 0)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'data': specialties,
+            'total_specialties': len(specialties),
+            'active_specialties': len([s for s in specialties if s['count'] > 0])
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
