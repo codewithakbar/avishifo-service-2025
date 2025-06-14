@@ -8,7 +8,7 @@ class HospitalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hospital
-        fields = ['id', 'name', 'address', 'phone', 'phone_number']
+        fields = ['id', 'name', 'address', 'phone', 'phone_number', 'available_doctors']
         read_only_fields = ('created_at', 'updated_at')
 
     def get_phone_number(self, obj):
