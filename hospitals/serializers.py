@@ -12,8 +12,8 @@ class HospitalSerializer(serializers.ModelSerializer):
         read_only_fields = ('created_at', 'updated_at')
 
     def get_phone_number(self, obj):
-        return obj.phone_number
-        
+        return obj.phone
+
 
 class HospitalCreateSerializer(serializers.ModelSerializer):
     class Meta:
