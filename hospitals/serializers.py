@@ -5,11 +5,15 @@ class HospitalSerializer(serializers.ModelSerializer):
     total_doctors = serializers.ReadOnlyField()
     available_doctors = serializers.ReadOnlyField()
     phone_number = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Hospital
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at')
+
+    def get_phone_number(self, obj):
+        return obj.phone_number
+        
 
 class HospitalCreateSerializer(serializers.ModelSerializer):
     class Meta:
