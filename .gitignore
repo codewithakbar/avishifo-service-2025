@@ -27,3 +27,4 @@ yarn-error.log*
 next-env.d.ts
 *.sqlite3
 
+/accounts/__pycache__

@@ -1,6 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Doctor, DoctorSchedule
+from .models import Doctor, DoctorSchedule, Hospital  
+
+
+@admin.register(Hospital)
+class HospitalAdmin(admin.ModelAdmin):
+    search_fields = ['name']
 
 
 class DoctorScheduleInline(admin.TabularInline):
