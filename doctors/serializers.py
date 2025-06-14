@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from accounts.serializers import UserSerializer
 from hospitals.serializers import HospitalSerializer
-from .models import Doctor, DoctorSchedule
+from .models import Doctor, DoctorSchedule, Hospital
 
 
 class DoctorScheduleSerializer(serializers.ModelSerializer):
@@ -117,3 +117,14 @@ class DoctorUpdateSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )  # Ensure these are not updated directly
+
+
+class HospitalSerializer(serializers.ModelSerializer):
+    phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hospital
+        fields = ['id', 'name', 'address', 'phone', 'phone_number']
+
+    def get_phone_number(self, obj):
+        return obj.phone

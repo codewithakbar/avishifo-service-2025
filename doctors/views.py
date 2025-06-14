@@ -78,21 +78,20 @@ class DoctorDetailView(generics.RetrieveUpdateAPIView):
         if self.request.method in ["PUT", "PATCH"]:
             return DoctorUpdateSerializer
         return DoctorSerializer
-    
+
 
 class DoctorProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         try:
-            # Retrieve the doctor profile for the authenticated user
             doctor = Doctor.objects.get(user=request.user)
             serializer = DoctorSerializer(doctor)
             return Response(serializer.data)
         except Doctor.DoesNotExist:
             return Response(
                 {"error": "Doctor profile not found for this user"},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
 
 
