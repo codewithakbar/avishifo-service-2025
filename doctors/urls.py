@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    DoctorListView, DoctorDetailView, DoctorCreateView,
+    DoctorListView, DoctorDetailView, DoctorCreateView, DoctorProfileView,
     doctor_dashboard_stats, doctor_schedule, doctor_specialties_list,
     doctor_specialties_with_stats, DoctorScheduleListView, DoctorScheduleDetailView
 )
@@ -18,4 +18,5 @@ urlpatterns = [
     # You can use the class-based views for more RESTful approach if preferred:
     path('<int:doctor_pk>/schedules/', DoctorScheduleListView.as_view(), name='doctor-schedules-list'),
     path('<int:doctor_pk>/schedules/<int:pk>/', DoctorScheduleDetailView.as_view(), name='doctor-schedules-detail'),
+    path('profile/', DoctorProfileView.as_view(), name='doctor-profile'),
 ]
