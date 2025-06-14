@@ -19,6 +19,7 @@ class HospitalSerializer(serializers.ModelSerializer):
         #     "total_doctors",
         # ]
         fields = '__all__'
+        exclude = ['email']
         read_only_fields = ("created_at", "updated_at")
 
     def get_phone_number(self, obj):
