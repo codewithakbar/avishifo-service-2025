@@ -13,7 +13,7 @@ class HospitalSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "address",
-            "phone",
+            # "phone",
             "phone_number",
             "available_doctors",
             "total_doctors",
@@ -21,7 +21,7 @@ class HospitalSerializer(serializers.ModelSerializer):
         read_only_fields = ("created_at", "updated_at")
 
     def get_phone_number(self, obj):
-        return obj.phone
+        return obj.phone_number
 
 
 class HospitalCreateSerializer(serializers.ModelSerializer):
