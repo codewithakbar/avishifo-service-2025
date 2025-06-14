@@ -127,4 +127,4 @@ class HospitalSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'address', 'phone', 'phone_number']
 
     def get_phone_number(self, obj):
-        return obj.phone
+        return obj.phone_number
