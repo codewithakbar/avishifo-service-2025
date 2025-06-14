@@ -4,6 +4,7 @@ from .models import Hospital
 class HospitalSerializer(serializers.ModelSerializer):
     total_doctors = serializers.ReadOnlyField()
     available_doctors = serializers.ReadOnlyField()
+    phone_number = serializers.SerializerMethodField()
     
     class Meta:
         model = Hospital

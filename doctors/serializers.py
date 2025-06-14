@@ -119,12 +119,3 @@ class DoctorUpdateSerializer(serializers.ModelSerializer):
         )  # Ensure these are not updated directly
 
 
-class HospitalSerializer(serializers.ModelSerializer):
-    phone_number = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Hospital
-        fields = ['id', 'name', 'address', 'phone', 'phone_number']
-
-    def get_phone_number(self, obj):
-        return obj.phone_number
