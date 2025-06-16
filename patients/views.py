@@ -1,9 +1,10 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, serializers, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
-from .models import Patient
-from .serializers import PatientSerializer, PatientCreateSerializer, PatientUpdateSerializer
+
+from .models import MedicalHistoryItem, MedicalRecord, Patient, PatientDocument, PrescribedMedication, VitalSign
+from .serializers import MedicalHistoryItemCreateSerializer, MedicalHistoryItemSerializer, MedicalRecordSerializer, PatientDocumentCreateSerializer, PatientDocumentSerializer, PatientSerializer, PatientCreateSerializer, PatientUpdateSerializer, PrescribedMedicationCreateSerializer, PrescribedMedicationSerializer, VitalSignCreateSerializer, VitalSignSerializer
 
 class PatientListView(generics.ListAPIView):
     queryset = Patient.objects.all()
@@ -84,3 +85,119 @@ def patient_medical_summary(request, pk):
     }
     
     return Response(summary)
+
+
+
+def is_doctor(user):
+    return user.is_authenticated and user.user_type == 'doctor'
+
+
+class PatientViewSet(viewsets.ModelViewSet):
+    queryset = Patient.objects.all()
+    serializer_class = PatientSerializer
+    permission_classes = [permissions.IsAuthenticated] # Замените на более строгие пермишены
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_doctor(user):
+            # Доктор может видеть всех пациентов (или только тех, с кем он связан - нужна доп. логика)
+            return Patient.objects.all()
+        elif user.is_authenticated and hasattr(user, 'patient_profile'):
+            # Пациент видит только свой профиль
+            return Patient.objects.filter(user=user)
+        return Patient.objects.none()
+
+    # def perform_create(self, serializer):
+    #     # Логика для создания пациента, возможно, привязка к текущему пользователю, если он не пациент еще
+    #     serializer.save()
+
+
+class MedicalRecordViewSet(viewsets.ModelViewSet):
+    queryset = MedicalRecord.objects.select_related('patient__user', 'doctor').prefetch_related(
+        'history_items', 'prescriptions', 'vital_signs', 'documents'
+    ).all()
+    serializer_class = MedicalRecordSerializer
+    permission_classes = [permissions.IsAuthenticated] # Замените
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_doctor(user):
+            # Доктор видит медкарты, где он автор, или все, если админ (нужна доп. логика)
+            return MedicalRecord.objects.filter(doctor=user) 
+        elif user.is_authenticated and hasattr(user, 'patient_profile'):
+            # Пациент видит только свои медкарты
+            return MedicalRecord.objects.filter(patient=user.patient_profile)
+        return MedicalRecord.objects.none()
+
+    def perform_create(self, serializer):
+        if not is_doctor(self.request.user):
+            raise serializers.ValidationError("Только доктор может создавать медицинские записи.")
+        serializer.save(doctor=self.request.user)
+
+# ViewSets для отдельных элементов медицинской карты
+# Это позволяет добавлять элементы к существующей медкарте
+
+class MedicalHistoryItemViewSet(viewsets.ModelViewSet):
+    queryset = MedicalHistoryItem.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return MedicalHistoryItemCreateSerializer
+        return MedicalHistoryItemSerializer
+
+    def get_queryset(self):
+        # Фильтрация по правам доступа (например, только для записей, к которым у доктора есть доступ)
+        # или по medical_record_id из URL, если используется вложенный роутинг
+        return MedicalHistoryItem.objects.all() # Заменить на фильтрованный queryset
+
+    # def perform_create(self, serializer):
+    #     # Дополнительная логика при создании, если medical_record_id не передается в теле запроса
+    #     # medical_record = get_object_or_404(MedicalRecord, pk=self.kwargs['medical_record_pk'])
+    #     # serializer.save(medical_record=medical_record)
+    #     pass
+
+
+class PrescribedMedicationViewSet(viewsets.ModelViewSet):
+    queryset = PrescribedMedication.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return PrescribedMedicationCreateSerializer
+        return PrescribedMedicationSerializer
+    
+    def get_queryset(self):
+        return PrescribedMedication.objects.all()
+
+
+class VitalSignViewSet(viewsets.ModelViewSet):
+    queryset = VitalSign.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return VitalSignCreateSerializer
+        return VitalSignSerializer
+    
+    def get_queryset(self):
+        return VitalSign.objects.all()
+
+
+class PatientDocumentViewSet(viewsets.ModelViewSet):
+    queryset = PatientDocument.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return PatientDocumentCreateSerializer
+        return PatientDocumentSerializer
+    
+    def get_queryset(self):
+        return PatientDocument.objects.all()
+
+    def perform_create(self, serializer):
+        # medical_record_id должен быть передан в теле запроса через PatientDocumentCreateSerializer
+        # uploaded_by устанавливается автоматически из request.user
+        serializer.save(uploaded_by=self.request.user)
+        
