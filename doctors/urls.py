@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    DoctorListView, DoctorDetailView, DoctorCreateView, DoctorProfileView,
+    DoctorListView, DoctorDetailView, DoctorCreateView, DoctorProfileAPIView, DoctorProfileView, SpecialtyChoicesAPIView,
     doctor_dashboard_stats, doctor_schedule, doctor_specialties_list,
     doctor_specialties_with_stats, DoctorScheduleListView, DoctorScheduleDetailView
 )
@@ -19,4 +19,8 @@ urlpatterns = [
     path('<int:doctor_pk>/schedules/', DoctorScheduleListView.as_view(), name='doctor-schedules-list'),
     path('<int:doctor_pk>/schedules/<int:pk>/', DoctorScheduleDetailView.as_view(), name='doctor-schedules-detail'),
     path('profile/', DoctorProfileView.as_view(), name='doctor-profile'),
+
+    path('doctor/profile/', DoctorProfileAPIView.as_view(), name='doctor-profile'),
+    path("specialties/", SpecialtyChoicesAPIView.as_view(), name="specialty-choices")
+
 ]

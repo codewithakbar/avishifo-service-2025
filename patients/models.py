@@ -44,7 +44,7 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"Patient: {self.user.full_name} ({self.patient_id})"
-
+    
     def save(self, *args, **kwargs):
         if not self.patient_id:
             last_patient = Patient.objects.order_by('-id').first()

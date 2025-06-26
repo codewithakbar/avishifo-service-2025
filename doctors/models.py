@@ -146,6 +146,18 @@ class Doctor(models.Model):
 
     def __str__(self):
         return f"Dr. {self.user.full_name} - {self.get_specialty_display()}"
+    
+    # 7️⃣ NEW FIELDS based on Frontend
+    bio = models.TextField(
+        blank=True,
+        null=True,
+        help_text="A short biography or professional statement for the profile page."
+    )
+    specializations = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="A list of more specific specializations, e.g., ['Echocardiography', 'Interventional Cardiology']"
+    )
 
     def save(self, *args, **kwargs):
         if not self.doctor_id:

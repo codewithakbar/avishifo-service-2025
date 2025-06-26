@@ -10,12 +10,62 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Doctor, DoctorSchedule
 from .serializers import (
+    DoctorProfileSerializer,
     DoctorSerializer,
     DoctorCreateSerializer,
     DoctorUpdateSerializer,
     DoctorScheduleSerializer,
 )
 from django.utils import timezone  # Import timezone for date comparisons
+
+
+
+class DoctorProfileAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            doctor = Doctor.objects.get(user=request.user)
+            serializer = DoctorProfileSerializer(doctor)
+            return Response(serializer.data)
+        except Doctor.DoesNotExist:
+            return Response({"detail": "Profil topilmadi"}, status=404)
+
+    def post(self, request):
+        if hasattr(request.user, 'doctor_profile'):
+            return Response({"detail": "Profil allaqachon mavjud"}, status=400)
+        
+        serializer = DoctorProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def put(self, request):
+        try:
+            doctor = Doctor.objects.get(user=request.user)
+        except Doctor.DoesNotExist:
+            return Response({"detail": "Profil topilmadi"}, status=404)
+
+        serializer = DoctorProfileSerializer(doctor, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def patch(self, request):
+        try:
+            doctor = Doctor.objects.get(user=request.user)
+        except Doctor.DoesNotExist:
+            return Response({"detail": "Profil topilmadi"}, status=404)
+
+        serializer = DoctorProfileSerializer(doctor, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
 
 
 class DoctorListView(generics.ListAPIView):
@@ -286,3 +336,11 @@ class DoctorScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
                 "You do not have permission to delete schedules for this doctor."
             )
         instance.delete()
+
+
+
+class SpecialtyChoicesAPIView(APIView):
+    def get(self, request):
+        return Response(Doctor.SPECIALTIES)
+    
+    
