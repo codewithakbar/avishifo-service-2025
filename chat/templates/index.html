@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>AI Med Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
     rel="stylesheet"
-  >
+  />
   <style>
     body {
       background-color: #f7f7f7;
@@ -62,32 +62,90 @@
     .input-area input[type="file"] {
       max-width: 200px;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-<div class="chat-container">
-  <div class="chat-history" id="chat-history">
-    <!-- Xabarlar shu yerga qo‘shiladi -->
-  </div>
+<!-- LOGIN FORM -->
+<div class="container mt-5" id="login-section">
+  <h4 class="mb-3">🔐 Kirish</h4>
+  <input type="text" id="username" class="form-control mb-2" placeholder="Username" />
+  <input type="password" id="password" class="form-control mb-3" placeholder="Password" />
+  <button class="btn btn-primary" onclick="login()">Kirish</button>
+</div>
+
+<!-- CHAT UI -->
+<div class="chat-container hidden" id="chat-section">
+  <div class="chat-history" id="chat-history"></div>
 
   <div class="input-area mb-2">
-    <input type="file" id="image-input" accept="image/*" class="form-control">
+    <input type="file" id="image-input" accept="image/*" class="form-control" />
     <button class="btn btn-primary" onclick="sendImage()">📤 Rasm yuborish</button>
   </div>
 
   <div class="input-group">
-    <input type="text" id="messageInput" class="form-control" placeholder="Xabar yozing...">
+    <input type="text" id="messageInput" class="form-control" placeholder="Xabar yozing..." />
     <button class="btn btn-success" onclick="sendMessage()">Yuborish</button>
   </div>
+
+  <button class="btn btn-danger mt-3" onclick="logout()">🚪 Chiqish</button>
 </div>
 
 <script>
-  const sessionId = 1;
-  const token = localStorage.getItem("token");
-  const imageInput = document.getElementById("image-input");
-  const messageInput = document.getElementById("messageInput");
-  const chatHistory = document.getElementById("chat-history");
+  let sessionId = null;
+
+  async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      alert("Iltimos, login va parolni kiriting.");
+      return;
+    }
+
+    const res = await fetch("/api/auth/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem("token", data.access);
+      document.getElementById("login-section").classList.add("hidden");
+      document.getElementById("chat-section").classList.remove("hidden");
+      await createChatSession();
+    } else {
+      alert("❌ Login xatosi: " + (data.detail || "Noto‘g‘ri login yoki parol"));
+    }
+  }
+
+  async function createChatSession() {
+    const res = await fetch("/api/chat/gpt/chats/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      body: JSON.stringify({}),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      sessionId = data.id;
+    } else {
+      alert("❌ Sessiyani yaratib bo‘lmadi");
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    location.reload();
+  }
 
   function appendMessage(content, role, imageURL = null) {
     const div = document.createElement("div");
@@ -99,34 +157,41 @@
     }
 
     div.innerHTML = html;
+    const chatHistory = document.getElementById("chat-history");
     chatHistory.appendChild(div);
     chatHistory.scrollTop = chatHistory.scrollHeight;
   }
 
   async function sendMessage() {
-    const message = messageInput.value.trim();
+    const message = document.getElementById("messageInput").value.trim();
     if (!message || !sessionId) return;
 
     appendMessage(message, "user");
-    messageInput.value = "";
+    document.getElementById("messageInput").value = "";
 
     const res = await fetch(`/api/chat/gpt/chats/${sessionId}/send_message/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token
+        Authorization: "Bearer " + localStorage.getItem("token"),
       },
-      body: JSON.stringify({ content: message })
+      body: JSON.stringify({ content: message }),
     });
 
     const data = await res.json();
-    if (res.ok) appendMessage(data.reply, "assistant");
-    else appendMessage("❌ Javob olinmadi", "assistant");
+    if (res.ok) {
+      appendMessage(data.reply, "assistant");
+    } else {
+      appendMessage("❌ Javob olinmadi", "assistant");
+    }
   }
 
   async function sendImage() {
-    const file = imageInput.files[0];
-    if (!file) return alert("Iltimos, rasm tanlang!");
+    const file = document.getElementById("image-input").files[0];
+    if (!file || !sessionId) {
+      alert("Iltimos, rasm tanlang!");
+      return;
+    }
 
     appendMessage("Rasm yuborildi", "user", URL.createObjectURL(file));
 
@@ -136,9 +201,9 @@
     const res = await fetch(`/api/chat/gpt/chats/${sessionId}/send_image/`, {
       method: "POST",
       headers: {
-        Authorization: "Bearer " + token
+        Authorization: "Bearer " + localStorage.getItem("token"),
       },
-      body: formData
+      body: formData,
     });
 
     const data = await res.json();
@@ -149,6 +214,15 @@
       appendMessage("❌ AI javobi yo‘q", "assistant");
     }
   }
+
+  window.onload = async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      document.getElementById("login-section").classList.add("hidden");
+      document.getElementById("chat-section").classList.remove("hidden");
+      await createChatSession();
+    }
+  };
 </script>
 
 </body>
