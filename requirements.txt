@@ -8,3 +8,10 @@ psycopg2-binary
 celery
 redis
 django-filter
+
+
+openai==0.28.0
+pytesseract
+
+python-dotenv
+

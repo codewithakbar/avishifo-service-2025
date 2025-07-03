@@ -1,7 +1,31 @@
 from rest_framework import serializers
-from .models import Chat, Message
+from .models import Chat, ChatSession, Message, UploadedImage
 from doctors.models import Doctor
 from patients.models import Patient
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = "__all__"
+
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChatSession
+        fields = ["id", "user", "created_at", "messages"]
+        read_only_fields = ["id", "user", "created_at", "messages"]
+
+
+class UploadedImageSerializer(serializers.ModelSerializer):
+    analysis = serializers.CharField(source="analyzed_text", read_only=True)
+
+    class Meta:
+        model = UploadedImage
+        fields = ["id", "user", "image", "analysis", "created_at"]
+        read_only_fields = ["user", "analysis", "created_at"]
 
 
 class MessageSerializer(serializers.ModelSerializer):

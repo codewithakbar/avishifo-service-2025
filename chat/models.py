@@ -6,6 +6,29 @@ from patients.models import Patient
 User = get_user_model()
 
 
+class ChatSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Message(models.Model):
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.CASCADE, related_name="messages"
+    )
+    role = models.CharField(
+        max_length=10, choices=(("user", "User"), ("assistant", "Assistant"))
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class UploadedImage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="uploads/")
+    analyzed_text = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Chat(models.Model):
     """Модель чата между врачом и пациентом"""
 
@@ -35,7 +58,7 @@ class Chat(models.Model):
         return self.messages.filter(sender_type="patient", is_read=False).count()
 
 
-class Message(models.Model):
+class Message1(models.Model):
     """Модель сообщения в чате"""
 
     SENDER_TYPES = (

@@ -8,6 +8,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from django.views.generic import TemplateView
+
+
 # API Router
 router = DefaultRouter()
 
@@ -20,6 +23,7 @@ urlpatterns = [
     
     # App URLs
     path('api/accounts/', include('accounts.urls')),
+    path('api/chat/', include('chat.urls')),
     path('api/patients/', include('patients.urls')),
     path('api/chat/', include('chat.urls')),
     path('api/doctors/', include('doctors.urls')),
@@ -29,6 +33,7 @@ urlpatterns = [
     
     # API Root
     path('api/', include(router.urls)),
+    path('', TemplateView.as_view(template_name='index.html')),
 ]
 
 # Serve media files in development

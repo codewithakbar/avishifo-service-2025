@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Med Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    body {
+      background-color: #f7f7f7;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .chat-container {
+      max-width: 800px;
+      margin: auto;
+      padding-top: 30px;
+      display: flex;
+      flex-direction: column;
+      height: 95vh;
+    }
+    .chat-history {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .message {
+      max-width: 70%;
+      padding: 10px 15px;
+      margin: 10px 0;
+      border-radius: 15px;
+      word-wrap: break-word;
+    }
+    .user-message {
+      margin-left: auto;
+      background-color: #0d6efd;
+      color: #fff;
+      border-bottom-right-radius: 0;
+    }
+    .assistant-message {
+      margin-right: auto;
+      background-color: #e9ecef;
+      color: #000;
+      border-bottom-left-radius: 0;
+    }
+    .preview-img {
+      max-width: 200px;
+      display: block;
+      margin-top: 8px;
+      border-radius: 10px;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+    }
+    .input-area input[type="file"] {
+      max-width: 200px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="chat-history" id="chat-history">
+    <!-- Xabarlar shu yerga qo‘shiladi -->
+  </div>
+
+  <div class="input-area mb-2">
+    <input type="file" id="image-input" accept="image/*" class="form-control">
+    <button class="btn btn-primary" onclick="sendImage()">📤 Rasm yuborish</button>
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="messageInput" class="form-control" placeholder="Xabar yozing...">
+    <button class="btn btn-success" onclick="sendMessage()">Yuborish</button>
+  </div>
+</div>
+
+<script>
+  const sessionId = 1;
+  const token = localStorage.getItem("token");
+  const imageInput = document.getElementById("image-input");
+  const messageInput = document.getElementById("messageInput");
+  const chatHistory = document.getElementById("chat-history");
+
+  function appendMessage(content, role, imageURL = null) {
+    const div = document.createElement("div");
+    div.classList.add("message", role === "user" ? "user-message" : "assistant-message");
+
+    let html = `<div>${content}</div>`;
+    if (imageURL) {
+      html += `<img src="${imageURL}" class="preview-img" />`;
+    }
+
+    div.innerHTML = html;
+    chatHistory.appendChild(div);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message || !sessionId) return;
+
+    appendMessage(message, "user");
+    messageInput.value = "";
+
+    const res = await fetch(`/api/chat/gpt/chats/${sessionId}/send_message/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ content: message })
+    });
+
+    const data = await res.json();
+    if (res.ok) appendMessage(data.reply, "assistant");
+    else appendMessage("❌ Javob olinmadi", "assistant");
+  }
+
+  async function sendImage() {
+    const file = imageInput.files[0];
+    if (!file) return alert("Iltimos, rasm tanlang!");
+
+    appendMessage("Rasm yuborildi", "user", URL.createObjectURL(file));
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`/api/chat/gpt/chats/${sessionId}/send_image/`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      appendMessage(data.reply, "assistant");
+    } else {
+      appendMessage("❌ AI javobi yo‘q", "assistant");
+    }
+  }
+</script>
+
+</body>
+</html>
