@@ -5,3 +5,6 @@ accounts/__pycache__/models.cpython-313.pyc
 /accounts/__pycache__
 /accounts/__pycache__
 .env
+patients/migrations/0004_patientvaqtincha.py
+patients/migrations/0005_alter_patientvaqtincha_passport_number_and_more.py
+patients/migrations/0006_alter_patientvaqtincha_passport_series.py

@@ -1,7 +1,22 @@
 from rest_framework import serializers
 from accounts.models import User
 from accounts.serializers import UserSerializer
-from .models import MedicalHistoryItem, MedicalRecord, Patient, PatientDocument, PrescribedMedication, VitalSign
+from .models import MedicalHistoryItem, MedicalRecord, Patient, PatientDocument, PatientVaqtincha, PrescribedMedication, VitalSign
+
+
+
+
+class PatientVaqtinchaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientVaqtincha
+        fields = '__all__'
+        extra_kwargs = {
+            'full_name': {'required': True},
+            'passport_series': {'required': True},
+            'passport_number': {'required': True},
+        }
+
+
 
 
 class PatientSerializer(serializers.ModelSerializer):

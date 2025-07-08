@@ -12,6 +12,37 @@ from accounts.models import (
 # Например, если Doctor в doctors.models:
 # from doctors.models import Doctor
 
+class PatientVaqtincha(models.Model):
+    GENDER_CHOICES = [
+        ('male', 'Мужской'),
+        ('female', 'Женский'),
+    ]
+
+    BLOOD_GROUP_CHOICES = [
+        ('A+', 'A(II) Rh+'),
+        ('A-', 'A(II) Rh-'),
+        ('B+', 'B(III) Rh+'),
+        ('B-', 'B(III) Rh-'),
+        ('AB+', 'AB(IV) Rh+'),
+        ('AB-', 'AB(IV) Rh-'),
+        ('O+', 'O(I) Rh+'),
+        ('O-', 'O(I) Rh-'),
+    ]
+
+    full_name = models.CharField(max_length=255)  # ФИО
+    passport_series = models.CharField(max_length=10)
+    passport_number = models.CharField(max_length=10, unique=True)
+    birth_date = models.DateField(null=True, blank=True)  # 🆕 Tug'ilgan sana
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    secondary_phone = models.CharField(max_length=20, null=True, blank=True)  # 🆕 Ikkinchi telefon
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.full_name
+    
 
 class Patient(models.Model):
     BLOOD_TYPES = (

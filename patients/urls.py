@@ -1,6 +1,6 @@
 from django.urls import path, include
 from .views import (
-    PatientListView, PatientDetailView, PatientCreateView,
+    PatientCreateAPIView, PatientListView, PatientDetailView, PatientCreateView,
     patient_medical_summary
 )
 from rest_framework.routers import DefaultRouter
@@ -34,7 +34,11 @@ router.register(r'documents', PatientDocumentViewSet, basename='patientdocument'
 urlpatterns = [
     path('', include(router.urls)),
     path('', PatientListView.as_view(), name='patient-list'),
-    path('create/', PatientCreateView.as_view(), name='patient-create'),
+
+    path('create/', PatientCreateAPIView.as_view(), name='patient-create'),
+
+
+    # path('create/', PatientCreateView.as_view(), name='patient-create'),
     path('<int:pk>/', PatientDetailView.as_view(), name='patient-detail'),
     path('<int:pk>/medical-summary/', patient_medical_summary, name='patient-medical-summary'),
 ]
