@@ -1,4 +1,5 @@
 from rest_framework import generics, permissions, status, serializers, viewsets
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
@@ -9,6 +10,7 @@ from .models import (
     MedicalRecord,
     Patient,
     PatientDocument,
+    PatientVaqtincha,
     PrescribedMedication,
     VitalSign,
 )
@@ -27,6 +29,21 @@ from .serializers import (
     VitalSignCreateSerializer,
     VitalSignSerializer,
 )
+
+
+
+class PatientListAPIView(ListAPIView):
+    queryset = PatientVaqtincha.objects.all()
+    serializer_class = PatientVaqtinchaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class PatientRetrieveAPIView(RetrieveAPIView):
+    queryset = PatientVaqtincha.objects.all()
+    serializer_class = PatientVaqtinchaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'id'  # or use 'pk' if preferred
+
 
 
 class PatientCreateAPIView(APIView):
