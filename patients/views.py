@@ -38,6 +38,13 @@ from .serializers import (
 class KasallikTarixiAPIView(APIView):
     permission_classes = [IsDoctorUser]
 
+    def get(self, request, pk=None):
+        
+        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        serializer = KasallikTarixiSerializer(instance)
+        return Response(serializer.data)
+
+        
     def post(self, request, *args, **kwargs):
         serializer = KasallikTarixiSerializer(data=request.data)
         if serializer.is_valid():
