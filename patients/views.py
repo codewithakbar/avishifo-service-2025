@@ -5,7 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 
+from patients.permissions import IsDoctorUser
+
 from .models import (
+    KasallikTarixi,
     MedicalHistoryItem,
     MedicalRecord,
     Patient,
@@ -15,6 +18,7 @@ from .models import (
     VitalSign,
 )
 from .serializers import (
+    KasallikTarixiSerializer,
     MedicalHistoryItemCreateSerializer,
     MedicalHistoryItemSerializer,
     MedicalRecordSerializer,
@@ -31,6 +35,34 @@ from .serializers import (
 )
 
 
+class KasallikTarixiAPIView(APIView):
+    permission_classes = [IsDoctorUser]
+
+    def post(self, request, *args, **kwargs):
+        serializer = KasallikTarixiSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Ma'lumotlar saqlandi."}, status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk=None):
+        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        serializer = KasallikTarixiSerializer(instance, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Ma'lumotlar to‘liq yangilandi."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk=None):
+        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        serializer = KasallikTarixiSerializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Ma'lumotlar qisman yangilandi."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PatientListAPIView(ListAPIView):
     queryset = PatientVaqtincha.objects.all()
@@ -42,8 +74,7 @@ class PatientRetrieveAPIView(RetrieveAPIView):
     queryset = PatientVaqtincha.objects.all()
     serializer_class = PatientVaqtinchaSerializer
     permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'id'  # or use 'pk' if preferred
-
+    lookup_field = "id"  # or use 'pk' if preferred
 
 
 class PatientCreateAPIView(APIView):

@@ -12,44 +12,188 @@ from accounts.models import (
 # Например, если Doctor в doctors.models:
 # from doctors.models import Doctor
 
+
 class PatientVaqtincha(models.Model):
     GENDER_CHOICES = [
-        ('male', 'Мужской'),
-        ('female', 'Женский'),
+        ("male", "Мужской"),
+        ("female", "Женский"),
     ]
 
     BLOOD_GROUP_CHOICES = [
-        ('A+', 'A(II) Rh+'),
-        ('A-', 'A(II) Rh-'),
-        ('B+', 'B(III) Rh+'),
-        ('B-', 'B(III) Rh-'),
-        ('AB+', 'AB(IV) Rh+'),
-        ('AB-', 'AB(IV) Rh-'),
-        ('O+', 'O(I) Rh+'),
-        ('O-', 'O(I) Rh-'),
+        ("A+", "A(II) Rh+"),
+        ("A-", "A(II) Rh-"),
+        ("B+", "B(III) Rh+"),
+        ("B-", "B(III) Rh-"),
+        ("AB+", "AB(IV) Rh+"),
+        ("AB-", "AB(IV) Rh-"),
+        ("O+", "O(I) Rh+"),
+        ("O-", "O(I) Rh-"),
     ]
 
     full_name = models.CharField(max_length=255)  # ФИО
     passport_series = models.CharField(max_length=10)
     passport_number = models.CharField(max_length=10, unique=True)
     birth_date = models.DateField(null=True, blank=True)  # 🆕 Tug'ilgan sana
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
+    gender = models.CharField(
+        max_length=10, choices=GENDER_CHOICES, null=True, blank=True
+    )
     phone = models.CharField(max_length=20, null=True, blank=True)
-    secondary_phone = models.CharField(max_length=20, null=True, blank=True)  # 🆕 Ikkinchi telefon
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, null=True, blank=True)
+    secondary_phone = models.CharField(
+        max_length=20, null=True, blank=True
+    )  # 🆕 Ikkinchi telefon
+    blood_group = models.CharField(
+        max_length=5, choices=BLOOD_GROUP_CHOICES, null=True, blank=True
+    )
     address = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.full_name
-    
+
+
+class KasallikTarixi(models.Model):
+    patient = models.ForeignKey(
+        to=PatientVaqtincha,
+        on_delete=models.CASCADE,
+        related_name="kasalliklar",
+    )
+    fish = models.CharField("F.I.SH", max_length=255)
+    tugilgan_sana = models.DateField("Tug'ilgan sana")
+    millati = models.CharField("Millati", max_length=100, blank=True)
+    malumoti = models.CharField("Ma'lumoti", max_length=100, blank=True)
+    kasbi = models.CharField("Kasbi", max_length=100, blank=True)
+    ish_joyi = models.CharField("Ish joyi", max_length=255, blank=True)
+    ish_vazifasi = models.CharField("Ish joyidagi vazifasi", max_length=255, blank=True)
+    uy_manzili = models.CharField("Uy manzili", max_length=255, blank=True)
+    kelgan_vaqti = models.DateField("Kelgan vaqti")
+    shikoyatlar = models.TextField("Kelgan vaqtdagi shikoyatlari", blank=True)
+
+    asosiy_kasalliklar = models.TextField("Asosiy tizimli kasalliklari", blank=True)
+    asosiy_kasalliklar_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/asosiy_kasalliklar/", null=True, blank=True
+    )
+
+    nafas_tizimi = models.TextField(blank=True)
+    nafas_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/nafas_tizimi/", null=True, blank=True
+    )
+
+    yotal = models.TextField("Yo'tal", blank=True)
+    yotal_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/yotal/", null=True, blank=True
+    )
+
+    balgam = models.TextField("Balg'am", blank=True)
+    balgam_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/balgam/", null=True, blank=True
+    )
+
+    qon_tuflash = models.TextField(blank=True)
+    qon_tuflash_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/qon_tuflash/", null=True, blank=True
+    )
+
+    kokrak_ogriq = models.TextField("Ko'krak qafasidagi og'riq", blank=True)
+    kokrak_ogriq_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/kokrak_ogriq/", null=True, blank=True
+    )
+
+    nafas_qisishi = models.TextField(blank=True)
+    nafas_qisishi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/nafas_qisishi/", null=True, blank=True
+    )
+
+    yurak_qon_shikoyatlari = models.TextField(blank=True)
+    yurak_qon_shikoyatlari_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/yurak_qon_shikoyatlari/", null=True, blank=True
+    )
+
+    yurak_ogriq = models.TextField(blank=True)
+    yurak_ogriq_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/yurak_ogriq/", null=True, blank=True
+    )
+
+    yurak_urishi_ozgarishi = models.TextField(blank=True)
+    yurak_urishi_ozgarishi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/yurak_urishi_ozgarishi/", null=True, blank=True
+    )
+
+    yurak_urishi_sezish = models.TextField(blank=True)
+    yurak_urishi_sezish_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/yurak_urishi_sezish/", null=True, blank=True
+    )
+
+    hazm_tizimi = models.TextField(blank=True)
+    hazm_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/hazm_tizimi/", null=True, blank=True
+    )
+
+    qusish = models.TextField(blank=True)
+    qusish_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/qusish/", null=True, blank=True
+    )
+
+    qorin_ogriq = models.TextField(blank=True)
+    qorin_ogriq_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/qorin_ogriq/", null=True, blank=True
+    )
+
+    qorin_shish = models.TextField(blank=True)
+    qorin_shish_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/qorin_shish/", null=True, blank=True
+    )
+
+    ich_ozgarishi = models.TextField(blank=True)
+    ich_ozgarishi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/ich_ozgarishi/", null=True, blank=True
+    )
+
+    anus_shikoyatlar = models.TextField(blank=True)
+    anus_shikoyatlar_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/anus_shikoyatlar/", null=True, blank=True
+    )
+
+    siydik_tizimi = models.TextField("Siydik ajratish tizimi faoliyati", blank=True)
+    siydik_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/siydik_tizimi/", null=True, blank=True
+    )
+
+    endokrin_tizimi = models.TextField(blank=True)
+    endokrin_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/endokrin_tizimi/", null=True, blank=True
+    )
+
+    tayanch_tizimi = models.TextField(blank=True)
+    tayanch_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/tayanch_tizimi/", null=True, blank=True
+    )
+
+    asab_tizimi = models.TextField(blank=True)
+    asab_tizimi_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/asab_tizimi/", null=True, blank=True
+    )
+
+    doktor_tavsiyalari = models.TextField(blank=True)
+    doktor_tavsiyalari_hujjat = models.FileField(
+        upload_to="kasallik_hujjatlari/doktor_tavsiyalari/", null=True, blank=True
+    )
+
+    yuborilgan_vaqt = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.fish
+
 
 class Patient(models.Model):
     BLOOD_TYPES = (
-        ('A+', 'A+'), ('A-', 'A-'),
-        ('B+', 'B+'), ('B-', 'B-'),
-        ('AB+', 'AB+'), ('AB-', 'AB-'),
-        ('O+', 'O+'), ('O-', 'O-'),
+        ("A+", "A+"),
+        ("A-", "A-"),
+        ("B+", "B+"),
+        ("B-", "B-"),
+        ("AB+", "AB+"),
+        ("AB-", "AB-"),
+        ("O+", "O+"),
+        ("O-", "O-"),
     )
 
     GENDER_CHOICES = [
@@ -58,7 +202,9 @@ class Patient(models.Model):
         ("other", "Другой"),
     ]
 
-    user = models.OneToOneField(DoctorUser, on_delete=models.CASCADE, related_name='patient_profile')
+    user = models.OneToOneField(
+        DoctorUser, on_delete=models.CASCADE, related_name="patient_profile"
+    )
     patient_id = models.CharField(max_length=20, unique=True)
     blood_type = models.CharField(max_length=3, choices=BLOOD_TYPES, blank=True)
     emergency_contact_name = models.CharField(max_length=100, blank=True)
@@ -75,10 +221,10 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"Patient: {self.user.full_name} ({self.patient_id})"
-    
+
     def save(self, *args, **kwargs):
         if not self.patient_id:
-            last_patient = Patient.objects.order_by('-id').first()
+            last_patient = Patient.objects.order_by("-id").first()
             if last_patient:
                 last_id = int(last_patient.patient_id[1:])
                 self.patient_id = f"P{last_id + 1:06d}"

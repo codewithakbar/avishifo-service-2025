@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from accounts.models import User
 from accounts.serializers import UserSerializer
-from .models import MedicalHistoryItem, MedicalRecord, Patient, PatientDocument, PatientVaqtincha, PrescribedMedication, VitalSign
+from .models import KasallikTarixi, MedicalHistoryItem, MedicalRecord, Patient, PatientDocument, PatientVaqtincha, PrescribedMedication, VitalSign
 
 
 
@@ -16,6 +16,14 @@ class PatientVaqtinchaSerializer(serializers.ModelSerializer):
             'passport_number': {'required': True},
         }
 
+
+
+class KasallikTarixiSerializer(serializers.ModelSerializer):
+    patient_full_name = serializers.CharField(source='patient.full_name', read_only=True)
+
+    class Meta:
+        model = KasallikTarixi
+        fields = '__all__'
 
 
 

@@ -1,12 +1,16 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Patient, PatientVaqtincha
+from .models import KasallikTarixi, Patient, PatientVaqtincha
 
 
 
 admin.site.register(PatientVaqtincha)
 
-
+@admin.register(KasallikTarixi)
+class KasallikTarixiAdmin(admin.ModelAdmin):
+    list_display = ('fish', 'patient', 'kelgan_vaqti')
+    search_fields = ('fish', 'patient__full_name')
+    
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
     list_display = (
