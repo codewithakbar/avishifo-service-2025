@@ -15,6 +15,7 @@ class PatientVaqtinchaSerializer(serializers.ModelSerializer):
             'passport_series': {'required': True},
             'passport_number': {'required': True},
         }
+        read_only_fields = ['created_by']
 
 
 

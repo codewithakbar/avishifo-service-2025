@@ -85,12 +85,12 @@ class PatientRetrieveAPIView(RetrieveAPIView):
 
 
 class PatientCreateAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]  # Only for logged-in doctors
+    permission_classes = [permissions.IsAuthenticated]  # Faqat tizimga kirgan foydalanuvchilar uchun
 
     def post(self, request):
         serializer = PatientVaqtinchaSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(created_by=self.request.user)  # created_by ni belgilaymiz
             return Response(
                 {"message": "Пациент успешно создан", "data": serializer.data},
                 status=status.HTTP_201_CREATED,

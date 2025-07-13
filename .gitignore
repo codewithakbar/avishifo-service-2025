@@ -10,3 +10,4 @@ patients/migrations/0005_alter_patientvaqtincha_passport_number_and_more.py
 patients/migrations/0006_alter_patientvaqtincha_passport_series.py
 patients/migrations/0004_patientvaqtincha_kasalliktarixi.py
 patients/migrations/0005_kasalliktarixi_anus_shikoyatlar_hujjat_and_more.py
+accounts/migrations/0003_user_created_by.py
