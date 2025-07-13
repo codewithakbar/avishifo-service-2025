@@ -72,9 +72,27 @@ class KasallikTarixiAPIView(APIView):
 
 
 class PatientListAPIView(ListAPIView):
-    queryset = PatientVaqtincha.objects.all()
     serializer_class = PatientVaqtinchaSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = PatientVaqtincha.objects.all()
+
+        # faqat doctorlar kirish huquqiga ega
+        if user.user_type != 'doctor':
+            return PatientVaqtincha.objects.none()
+
+        # query params orqali passport qidiruvi
+        passport_series = self.request.query_params.get('passport_series')
+        passport_number = self.request.query_params.get('passport_number')
+
+        if passport_series and passport_number:
+            # Har qanday doctor passport orqali ko'rishi mumkin
+            return queryset.filter(passport_series=passport_series, passport_number=passport_number)
+        
+        # Aks holda faqat o'zi yaratganlarini ko'rsat
+        return queryset.filter(created_by=user)
 
 
 class PatientRetrieveAPIView(RetrieveAPIView):
