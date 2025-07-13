@@ -47,6 +47,8 @@ class PatientVaqtincha(models.Model):
     address = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
+
     def __str__(self):
         return self.full_name
 

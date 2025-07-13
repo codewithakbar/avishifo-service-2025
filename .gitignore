@@ -11,3 +11,5 @@ patients/migrations/0006_alter_patientvaqtincha_passport_series.py
 patients/migrations/0004_patientvaqtincha_kasalliktarixi.py
 patients/migrations/0005_kasalliktarixi_anus_shikoyatlar_hujjat_and_more.py
 accounts/migrations/0003_user_created_by.py
+accounts/migrations/0004_remove_user_created_by.py
+patients/migrations/0006_patientvaqtincha_created_by.py
