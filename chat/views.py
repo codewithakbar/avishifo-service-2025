@@ -100,65 +100,65 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
 
         return Response({"reply": assistant_reply})
 
-        @action(detail=True, methods=["post"])
-        def send_image(self, request, pk=None):
-            session = self.get_object()
+    @action(detail=True, methods=["post"])
+    def send_image(self, request, pk=None):
+        session = self.get_object()
 
-            image_file = request.FILES.get("image")
-            if not image_file:
-                return Response(
-                    {"error": "Rasm yuborilmadi"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Base64 ga o‘girish
-            image_bytes = image_file.read()
-            base64_image = base64.b64encode(image_bytes).decode("utf-8")
-
-            # GPT Vision chaqiruv
-            response = openai.ChatCompletion.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Ты — AviShifo, медицинский ИИ, клинический аналитик.\n"
-                            "Ты обязан анализировать жалобы, анамнез, лабораторные данные и медицинские изображения "
-                            "(Рентгенография, флюорография, КТ, МРТ, УЗИ, сцинтиграфия, ПЭТ, гастроскопия, колоноскопия, "
-                            "бронхоскопия, цистоскопия, гистероскопия, ЭКГ, холтер, ЭЭГ, ЭМГ, РЭГ, спирография, тредмил-тест, "
-                            "велоэргометрия, СМАД, пункции, ангиография, биопсия, катетеризация, фиброэластометрия, Эхо-ЭС.).\n"
-                            "Ты должен:\n"
-                            "1. Сформулировать предварительный диагноз и дифференциальный ряд.\n"
-                            "2. Назначить план обследования.\n"
-                            "3. Предложить тактику лечения.\n"
-                            "4. Указать возможные осложнения.\n"
-                            "5. Перечислить группы препаратов для лечения."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "Проанализируй это медицинское изображение.",
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                },
-                            },
-                        ],
-                    },
-                ],
-                max_tokens=1000,
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response(
+                {"error": "Rasm yuborilmadi"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-            analysis = response["choices"][0]["message"]["content"]
+        # Base64 ga o‘girish
+        image_bytes = image_file.read()
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-            # Javobni saqlash (role = assistant)
-            Message.objects.create(session=session, role="assistant", content=analysis)
+        # GPT Vision chaqiruv
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Ты — AviShifo, медицинский ИИ, клинический аналитик.\n"
+                        "Ты обязан анализировать жалобы, анамнез, лабораторные данные и медицинские изображения "
+                        "(Рентгенография, флюорография, КТ, МРТ, УЗИ, сцинтиграфия, ПЭТ, гастроскопия, колоноскопия, "
+                        "бронхоскопия, цистоскопия, гистероскопия, ЭКГ, холтер, ЭЭГ, ЭМГ, РЭГ, спирография, тредмил-тест, "
+                        "велоэргометрия, СМАД, пункции, ангиография, биопсия, катетеризация, фиброэластометрия, Эхо-ЭС.).\n"
+                        "Ты должен:\n"
+                        "1. Сформулировать предварительный диагноз и дифференциальный ряд.\n"
+                        "2. Назначить план обследования.\n"
+                        "3. Предложить тактику лечения.\n"
+                        "4. Указать возможные осложнения.\n"
+                        "5. Перечислить группы препаратов для лечения."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Проанализируй это медицинское изображение.",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            },
+                        },
+                    ],
+                },
+            ],
+            max_tokens=1000,
+        )
 
-            return Response({"reply": analysis})
+        analysis = response["choices"][0]["message"]["content"]
+
+        # Javobni saqlash (role = assistant)
+        Message.objects.create(session=session, role="assistant", content=analysis)
+
+        return Response({"reply": analysis})
 
 
 class UploadedImageViewSet(viewsets.ModelViewSet):
