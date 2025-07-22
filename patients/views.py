@@ -39,9 +39,18 @@ class KasallikTarixiAPIView(APIView):
     permission_classes = [IsDoctorUser]
 
     def get(self, request, pk=None):
-        
-        instance = get_object_or_404(KasallikTarixi, pk=pk)
-        serializer = KasallikTarixiSerializer(instance)
+        if pk is not None:
+            instance = get_object_or_404(KasallikTarixi, pk=pk)
+            serializer = KasallikTarixiSerializer(instance)
+            return Response(serializer.data)
+
+        patient_id = request.query_params.get("patient_id")
+        if patient_id:
+            queryset = KasallikTarixi.objects.filter(patient_id=patient_id).order_by('-yuborilgan_vaqt')
+        else:
+            queryset = KasallikTarixi.objects.all().order_by('-yuborilgan_vaqt')
+
+        serializer = KasallikTarixiSerializer(queryset, many=True)
         return Response(serializer.data)
 
         
