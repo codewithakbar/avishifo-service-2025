@@ -29,4 +29,5 @@ urlpatterns = [
     path("<int:chat_id>/read/", mark_messages_read, name="mark-read"),
 
     path('gpt/', include(router.urls)),
+    
 ]
