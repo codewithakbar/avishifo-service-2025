@@ -25,12 +25,17 @@ class DoctorAdmin(admin.ModelAdmin):
         "consultation_fee",
         "rating",
         "is_available",
+        "gender",
+        "category",
     )
     list_filter = (
         "specialty",
         "hospital",
         "is_available",
         "years_of_experience",
+        "gender",
+        "category",
+        "degree",
         "created_at",
         "user__is_verified",
     )
@@ -43,29 +48,93 @@ class DoctorAdmin(admin.ModelAdmin):
         "license_number",
         "hospital__name",
         "specialty",
+        "bio",
+        "main_workplace",
     )
-    readonly_fields = ("doctor_id", "rating", "created_at", "updated_at")
+    readonly_fields = ("doctor_id", "rating", "created_at", "updated_at", "total_income")
     ordering = ("-created_at",)
     inlines = [DoctorScheduleInline]
 
     fieldsets = (
         (
-            "Doctor Information",
-            {"fields": ("doctor_id", "user", "specialty", "license_number")},
+            "Basic Information",
+            {"fields": ("doctor_id", "user", "gender", "date_of_birth")},
         ),
         (
-            "Professional Details",
+            "Professional Information",
             {
                 "fields": (
-                    "hospital",
+                    "specialty",
+                    "specializations",
+                    "license_number",
+                    "category",
+                    "degree",
                     "years_of_experience",
                     "education",
                     "certifications",
-                    "consultation_fee",
+                    "bio",
                 )
             },
         ),
-        ("Status & Rating", {"fields": ("is_available", "rating")}),
+        (
+            "Work Details",
+            {
+                "fields": (
+                    "hospital",
+                    "main_workplace",
+                    "medical_identifier",
+                    "consultation_fee",
+                    "total_income",
+                )
+            },
+        ),
+        (
+            "Schedule & Availability",
+            {
+                "fields": (
+                    "is_available",
+                    "availability_status",
+                    "working_hours",
+                    "consultation_schedule",
+                    "online_consultation_available",
+                )
+            },
+        ),
+        (
+            "Contact Information",
+            {
+                "fields": (
+                    "work_email",
+                    "work_phone",
+                    "emergency_contact",
+                    "social_media_links",
+                )
+            },
+        ),
+        (
+            "Additional Information",
+            {
+                "fields": (
+                    "languages_spoken",
+                    "insurance_info",
+                    "rating",
+                    "reviews_count",
+                    "patients_accepted_count",
+                    "consultations_count",
+                )
+            },
+        ),
+        (
+            "Verification & Analytics",
+            {
+                "fields": (
+                    "documents_verified_status",
+                    "last_verification_date",
+                    "last_reviews",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
         (
             "Timestamps",
             {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
@@ -79,7 +148,7 @@ class DoctorAdmin(admin.ModelAdmin):
     get_full_name.admin_order_field = "user__first_name"
 
     def get_hospital_name(self, obj):
-        return obj.hospital.name
+        return obj.hospital.name if obj.hospital else "Не указано"
 
     get_hospital_name.short_description = "Hospital"
     get_hospital_name.admin_order_field = "hospital__name"

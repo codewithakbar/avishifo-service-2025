@@ -13,3 +13,4 @@ patients/migrations/0005_kasalliktarixi_anus_shikoyatlar_hujjat_and_more.py
 accounts/migrations/0003_user_created_by.py
 accounts/migrations/0004_remove_user_created_by.py
 patients/migrations/0006_patientvaqtincha_created_by.py
+doctors/migrations/0006_doctor_availability_status_doctor_emergency_contact_and_more.py

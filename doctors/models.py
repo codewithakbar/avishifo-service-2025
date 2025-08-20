@@ -15,6 +15,13 @@ class Hospital(models.Model):
 
 
 class Doctor(models.Model):
+    GENDER_CHOICES = (
+        ('male', 'Мужской'),
+        ('female', 'Женский'),
+        ('other', 'Другой'),
+        ('not_specified', 'Не указано'),
+    )
+    
     SPECIALTIES = (
         ("internal_medicine", "Терапия (внутренние болезни)"),
         ("cardiology", "Кардиология"),
@@ -80,7 +87,7 @@ class Doctor(models.Model):
         User, on_delete=models.CASCADE, related_name="doctor_profile"
     )
     doctor_id = models.CharField(max_length=20, unique=True)
-    specialty = models.CharField(max_length=50, choices=SPECIALTIES)
+    specialty = models.CharField(max_length=50, choices=SPECIALTIES, blank=True, null=True)
     license_number = models.CharField(
         max_length=50, unique=True, blank=True, null=True
     )  # Made nullable
@@ -144,9 +151,6 @@ class Doctor(models.Model):
     documents_verified_status = models.BooleanField(default=False)
     last_verification_date = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
-        return f"Dr. {self.user.full_name} - {self.get_specialty_display()}"
-    
     # 7️⃣ NEW FIELDS based on Frontend
     bio = models.TextField(
         blank=True,
@@ -158,7 +162,46 @@ class Doctor(models.Model):
         blank=True,
         help_text="A list of more specific specializations, e.g., ['Echocardiography', 'Interventional Cardiology']"
     )
+    
+    # 8️⃣ Additional profile fields from UI
+    gender = models.CharField(
+        max_length=20, 
+        choices=GENDER_CHOICES, 
+        default='not_specified',
+        help_text="Пол врача"
+    )
+    emergency_contact = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        help_text="Экстренный контакт"
+    )
+    insurance_info = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Информация о страховке"
+    )
+    working_hours = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Рабочие часы в текстовом формате"
+    )
+    availability_status = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Статус доступности (например: 'Доступен', 'В отпуске', 'Занят')"
+    )
+    total_income = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Общий доход врача"
+    )
 
+    def __str__(self):
+        return f"Dr. {self.user.full_name} - {self.get_specialty_display() if self.specialty else 'Специализация не указана'}"
+    
     def save(self, *args, **kwargs):
         if not self.doctor_id:
             # Generate doctor ID
