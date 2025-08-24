@@ -105,12 +105,17 @@ class DoctorProfileManagementView(APIView):
         try:
             doctor = Doctor.objects.get(user=request.user)
             
+            # Handle profile_picture separately (it's a user field)
+            profile_picture = request.data.pop('profile_picture', None) if 'profile_picture' in request.data else None
+            
             # Handle nested user data
             user_data = request.data.pop('user', {}) if 'user' in request.data else {}
             
-            # Update user information
-            if user_data:
+            # Update user information including profile_picture
+            if user_data or profile_picture is not None:
                 user = doctor.user
+                if profile_picture is not None:
+                    user.profile_picture = profile_picture
                 for field, value in user_data.items():
                     if hasattr(user, field) and field not in ['id', 'username', 'password']:
                         setattr(user, field, value)
@@ -366,12 +371,79 @@ def doctor_specialties_list(request):
     Returns a list of all available doctor specialties.
     """
     try:
-        specialties = []
-        for specialty_code, specialty_name in Doctor.SPECIALTIES:
-            specialties.append({"value": specialty_code, "label": specialty_name})
+        # Custom specialties list as requested by user
+        custom_specialties = [
+            {"value": "general_practitioner", "label": "Врач общей практики (терапевт)"},
+            {"value": "pediatrician", "label": "Педиатр (детский врач)"},
+            {"value": "family_doctor", "label": "Семейный врач"},
+            {"value": "cardiologist", "label": "Кардиолог"},
+            {"value": "vascular_surgeon", "label": "Сосудистый хирург"},
+            {"value": "hematologist", "label": "Гематолог"},
+            {"value": "pulmonologist", "label": "Пульмонолог (лёгкие)"},
+            {"value": "phthisiologist", "label": "Фтизиатр (туберкулёз)"},
+            {"value": "gastroenterologist", "label": "Гастроэнтеролог"},
+            {"value": "proctologist", "label": "Проктолог (колопроктолог)"},
+            {"value": "hepatologist", "label": "Гепатолог (печень)"},
+            {"value": "urologist", "label": "Уролог"},
+            {"value": "andrologist", "label": "Андролог (мужское здоровье)"},
+            {"value": "nephrologist", "label": "Нефролог (почки)"},
+            {"value": "gynecologist", "label": "Гинеколог"},
+            {"value": "reproductologist", "label": "Репродуктолог (ЭКО, бесплодие)"},
+            {"value": "obstetrician_gynecologist", "label": "Акушер-гинеколог"},
+            {"value": "endocrinologist", "label": "Эндокринолог (щитовидка, диабет)"},
+            {"value": "neurologist", "label": "Невролог"},
+            {"value": "neurosurgeon", "label": "Нейрохирург"},
+            {"value": "psychiatrist", "label": "Психиатр"},
+            {"value": "psychotherapist", "label": "Психотерапевт"},
+            {"value": "narcologist", "label": "Нарколог"},
+            {"value": "pediatric_cardiologist", "label": "Детский кардиолог"},
+            {"value": "pediatric_neurologist", "label": "Детский невролог"},
+            {"value": "pediatric_endocrinologist", "label": "Детский эндокринолог"},
+            {"value": "pediatric_surgeon", "label": "Детский хирург"},
+            {"value": "neonatologist", "label": "Неонатолог"},
+            {"value": "general_surgeon", "label": "Хирург общей практики"},
+            {"value": "traumatologist_orthopedist", "label": "Травматолог-ортопед"},
+            {"value": "oncosurgeon", "label": "Онкохирург"},
+            {"value": "plastic_surgeon", "label": "Пластический хирург"},
+            {"value": "maxillofacial_surgeon", "label": "Челюстно-лицевой хирург"},
+            {"value": "thoracic_surgeon", "label": "Торакальный хирург"},
+            {"value": "cardiosurgeon", "label": "Кардиохирург"},
+            {"value": "ophthalmologist", "label": "Офтальмолог (глазной врач)"},
+            {"value": "otolaryngologist", "label": "Отоларинголог (ЛОР)"},
+            {"value": "audiologist", "label": "Сурдолог (слух)"},
+            {"value": "dermatologist", "label": "Дерматолог"},
+            {"value": "cosmetologist", "label": "Косметолог"},
+            {"value": "venereologist", "label": "Венеролог"},
+            {"value": "oncologist", "label": "Онколог"},
+            {"value": "pediatric_oncologist", "label": "Детский онколог"},
+            {"value": "radiologist", "label": "Радиолог (рентген, МРТ, КТ)"},
+            {"value": "ultrasound_specialist", "label": "УЗИ-диагност"},
+            {"value": "laboratory_technician", "label": "Лаборант (клиническая лаборатория)"},
+            {"value": "pathologist", "label": "Патологоанатом"},
+            {"value": "geneticist", "label": "Генетик"},
+            {"value": "physiotherapist", "label": "Физиотерапевт"},
+            {"value": "rehabilitologist", "label": "Реабилитолог"},
+            {"value": "exercise_therapist", "label": "ЛФК-врач"},
+            {"value": "palliative_doctor", "label": "Паллиативный врач"},
+            {"value": "anesthesiologist_resuscitator", "label": "Анестезиолог-реаниматолог"},
+            {"value": "emergency_doctor", "label": "Врач скорой помощи"},
+            {"value": "toxicologist", "label": "Токсиколог"},
+            {"value": "epidemiologist", "label": "Врач-эпидемиолог"},
+            {"value": "hygienist", "label": "Врач-гигиенист"},
+            {"value": "preventive_medicine_doctor", "label": "Врач по медико-профилактическому делу"},
+            {"value": "dental_therapist", "label": "Стоматолог-терапевт"},
+            {"value": "dental_surgeon", "label": "Стоматолог-хирург"},
+            {"value": "dental_orthopedist", "label": "Стоматолог-ортопед"},
+            {"value": "orthodontist", "label": "Ортодонт"},
+            {"value": "pediatric_dentist", "label": "Детский стоматолог"},
+            {"value": "implantologist", "label": "Имплантолог"},
+            {"value": "sports_doctor", "label": "Спортивный врач"},
+            {"value": "forensic_medical_expert", "label": "Судебно-медицинский эксперт"},
+            {"value": "disaster_medicine_doctor", "label": "Врач медицины катастроф"}
+        ]
 
         return JsonResponse(
-            {"success": True, "data": specialties, "count": len(specialties)}
+            {"success": True, "data": custom_specialties, "count": len(custom_specialties)}
         )
 
     except Exception as e:
@@ -392,13 +464,84 @@ def doctor_specialties_with_stats(request):
 
         stats_dict = {item["specialty"]: item["count"] for item in specialty_stats}
 
+        # Custom specialties list as requested by user
+        custom_specialties = [
+            {"value": "general_practitioner", "label": "Врач общей практики (терапевт)"},
+            {"value": "pediatrician", "label": "Педиатр (детский врач)"},
+            {"value": "family_doctor", "label": "Семейный врач"},
+            {"value": "cardiologist", "label": "Кардиолог"},
+            {"value": "vascular_surgeon", "label": "Сосудистый хирург"},
+            {"value": "hematologist", "label": "Гематолог"},
+            {"value": "pulmonologist", "label": "Пульмонолог (лёгкие)"},
+            {"value": "phthisiologist", "label": "Фтизиатр (туберкулёз)"},
+            {"value": "gastroenterologist", "label": "Гастроэнтеролог"},
+            {"value": "proctologist", "label": "Проктолог (колопроктолог)"},
+            {"value": "hepatologist", "label": "Гепатолог (печень)"},
+            {"value": "urologist", "label": "Уролог"},
+            {"value": "andrologist", "label": "Андролог (мужское здоровье)"},
+            {"value": "nephrologist", "label": "Нефролог (почки)"},
+            {"value": "gynecologist", "label": "Гинеколог"},
+            {"value": "reproductologist", "label": "Репродуктолог (ЭКО, бесплодие)"},
+            {"value": "obstetrician_gynecologist", "label": "Акушер-гинеколог"},
+            {"value": "endocrinologist", "label": "Эндокринолог (щитовидка, диабет)"},
+            {"value": "neurologist", "label": "Невролог"},
+            {"value": "neurosurgeon", "label": "Нейрохирург"},
+            {"value": "psychiatrist", "label": "Психиатр"},
+            {"value": "psychotherapist", "label": "Психотерапевт"},
+            {"value": "narcologist", "label": "Нарколог"},
+            {"value": "pediatric_cardiologist", "label": "Детский кардиолог"},
+            {"value": "pediatric_neurologist", "label": "Детский невролог"},
+            {"value": "pediatric_endocrinologist", "label": "Детский эндокринолог"},
+            {"value": "pediatric_surgeon", "label": "Детский хирург"},
+            {"value": "neonatologist", "label": "Неонатолог"},
+            {"value": "general_surgeon", "label": "Хирург общей практики"},
+            {"value": "traumatologist_orthopedist", "label": "Травматолог-ортопед"},
+            {"value": "oncosurgeon", "label": "Онкохирург"},
+            {"value": "plastic_surgeon", "label": "Пластический хирург"},
+            {"value": "maxillofacial_surgeon", "label": "Челюстно-лицевой хирург"},
+            {"value": "thoracic_surgeon", "label": "Торакальный хирург"},
+            {"value": "cardiosurgeon", "label": "Кардиохирург"},
+            {"value": "ophthalmologist", "label": "Офтальмолог (глазной врач)"},
+            {"value": "otolaryngologist", "label": "Отоларинголог (ЛОР)"},
+            {"value": "audiologist", "label": "Сурдолог (слух)"},
+            {"value": "dermatologist", "label": "Дерматолог"},
+            {"value": "cosmetologist", "label": "Косметолог"},
+            {"value": "venereologist", "label": "Венеролог"},
+            {"value": "oncologist", "label": "Онколог"},
+            {"value": "pediatric_oncologist", "label": "Детский онколог"},
+            {"value": "radiologist", "label": "Радиолог (рентген, МРТ, КТ)"},
+            {"value": "ultrasound_specialist", "label": "УЗИ-диагност"},
+            {"value": "laboratory_technician", "label": "Лаборант (клиническая лаборатория)"},
+            {"value": "pathologist", "label": "Патологоанатом"},
+            {"value": "geneticist", "label": "Генетик"},
+            {"value": "physiotherapist", "label": "Физиотерапевт"},
+            {"value": "rehabilitologist", "label": "Реабилитолог"},
+            {"value": "exercise_therapist", "label": "ЛФК-врач"},
+            {"value": "palliative_doctor", "label": "Паллиативный врач"},
+            {"value": "anesthesiologist_resuscitator", "label": "Анестезиолог-реаниматолог"},
+            {"value": "emergency_doctor", "label": "Врач скорой помощи"},
+            {"value": "toxicologist", "label": "Токсиколог"},
+            {"value": "epidemiologist", "label": "Врач-эпидемиолог"},
+            {"value": "hygienist", "label": "Врач-гигиенист"},
+            {"value": "preventive_medicine_doctor", "label": "Врач по медико-профилактическому делу"},
+            {"value": "dental_therapist", "label": "Стоматолог-терапевт"},
+            {"value": "dental_surgeon", "label": "Стоматолог-хирург"},
+            {"value": "dental_orthopedist", "label": "Стоматолог-ортопед"},
+            {"value": "orthodontist", "label": "Ортодонт"},
+            {"value": "pediatric_dentist", "label": "Детский стоматолог"},
+            {"value": "implantologist", "label": "Имплантолог"},
+            {"value": "sports_doctor", "label": "Спортивный врач"},
+            {"value": "forensic_medical_expert", "label": "Судебно-медицинский эксперт"},
+            {"value": "disaster_medicine_doctor", "label": "Врач медицины катастроф"}
+        ]
+
         specialties = []
-        for specialty_code, specialty_name in Doctor.SPECIALTIES:
+        for specialty in custom_specialties:
             specialties.append(
                 {
-                    "value": specialty_code,
-                    "label": specialty_name,
-                    "count": stats_dict.get(specialty_code, 0),
+                    "value": specialty["value"],
+                    "label": specialty["label"],
+                    "count": stats_dict.get(specialty["value"], 0),
                 }
             )
 
@@ -473,7 +616,82 @@ class DoctorScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class SpecialtyChoicesAPIView(APIView):
     def get(self, request):
-        return Response(Doctor.SPECIALTIES)
+        # Custom specialties list as requested by user
+        custom_specialties = [
+            {"value": "general_practitioner", "label": "Врач общей практики (терапевт)"},
+            {"value": "pediatrician", "label": "Педиатр (детский врач)"},
+            {"value": "family_doctor", "label": "Семейный врач"},
+            {"value": "cardiologist", "label": "Кардиолог"},
+            {"value": "vascular_surgeon", "label": "Сосудистый хирург"},
+            {"value": "hematologist", "label": "Гематолог"},
+            {"value": "pulmonologist", "label": "Пульмонолог (лёгкие)"},
+            {"value": "phthisiologist", "label": "Фтизиатр (туберкулёз)"},
+            {"value": "gastroenterologist", "label": "Гастроэнтеролог"},
+            {"value": "proctologist", "label": "Проктолог (колопроктолог)"},
+            {"value": "hepatologist", "label": "Гепатолог (печень)"},
+            {"value": "urologist", "label": "Уролог"},
+            {"value": "andrologist", "label": "Андролог (мужское здоровье)"},
+            {"value": "nephrologist", "label": "Нефролог (почки)"},
+            {"value": "gynecologist", "label": "Гинеколог"},
+            {"value": "reproductologist", "label": "Репродуктолог (ЭКО, бесплодие)"},
+            {"value": "obstetrician_gynecologist", "label": "Акушер-гинеколог"},
+            {"value": "endocrinologist", "label": "Эндокринолог (щитовидка, диабет)"},
+            {"value": "neurologist", "label": "Невролог"},
+            {"value": "neurosurgeon", "label": "Нейрохирург"},
+            {"value": "psychiatrist", "label": "Психиатр"},
+            {"value": "psychotherapist", "label": "Психотерапевт"},
+            {"value": "narcologist", "label": "Нарколог"},
+            {"value": "pediatric_cardiologist", "label": "Детский кардиолог"},
+            {"value": "pediatric_neurologist", "label": "Детский невролог"},
+            {"value": "pediatric_endocrinologist", "label": "Детский эндокринолог"},
+            {"value": "pediatric_surgeon", "label": "Детский хирург"},
+            {"value": "neonatologist", "label": "Неонатолог"},
+            {"value": "general_surgeon", "label": "Хирург общей практики"},
+            {"value": "traumatologist_orthopedist", "label": "Травматолог-ортопед"},
+            {"value": "oncosurgeon", "label": "Онкохирург"},
+            {"value": "plastic_surgeon", "label": "Пластический хирург"},
+            {"value": "maxillofacial_surgeon", "label": "Челюстно-лицевой хирург"},
+            {"value": "thoracic_surgeon", "label": "Торакальный хирург"},
+            {"value": "cardiosurgeon", "label": "Кардиохирург"},
+            {"value": "ophthalmologist", "label": "Офтальмолог (глазной врач)"},
+            {"value": "otolaryngologist", "label": "Отоларинголог (ЛОР)"},
+            {"value": "audiologist", "label": "Сурдолог (слух)"},
+            {"value": "dermatologist", "label": "Дерматолог"},
+            {"value": "cosmetologist", "label": "Косметолог"},
+            {"value": "venereologist", "label": "Венеролог"},
+            {"value": "oncologist", "label": "Онколог"},
+            {"value": "pediatric_oncologist", "label": "Детский онколог"},
+            {"value": "radiologist", "label": "Радиолог (рентген, МРТ, КТ)"},
+            {"value": "ultrasound_specialist", "label": "УЗИ-диагност"},
+            {"value": "laboratory_technician", "label": "Лаборант (клиническая лаборатория)"},
+            {"value": "pathologist", "label": "Патологоанатом"},
+            {"value": "geneticist", "label": "Генетик"},
+            {"value": "physiotherapist", "label": "Физиотерапевт"},
+            {"value": "rehabilitologist", "label": "Реабилитолог"},
+            {"value": "exercise_therapist", "label": "ЛФК-врач"},
+            {"value": "palliative_doctor", "label": "Паллиативный врач"},
+            {"value": "anesthesiologist_resuscitator", "label": "Анестезиолог-реаниматолог"},
+            {"value": "emergency_doctor", "label": "Врач скорой помощи"},
+            {"value": "toxicologist", "label": "Токсиколог"},
+            {"value": "epidemiologist", "label": "Врач-эпидемиолог"},
+            {"value": "hygienist", "label": "Врач-гигиенист"},
+            {"value": "preventive_medicine_doctor", "label": "Врач по медико-профилактическому делу"},
+            {"value": "dental_therapist", "label": "Стоматолог-терапевт"},
+            {"value": "dental_surgeon", "label": "Стоматолог-хирург"},
+            {"value": "dental_orthopedist", "label": "Стоматолог-ортопед"},
+            {"value": "orthodontist", "label": "Ортодонт"},
+            {"value": "pediatric_dentist", "label": "Детский стоматолог"},
+            {"value": "implantologist", "label": "Имплантолог"},
+            {"value": "sports_doctor", "label": "Спортивный врач"},
+            {"value": "forensic_medical_expert", "label": "Судебно-медицинский эксперт"},
+            {"value": "disaster_medicine_doctor", "label": "Врач медицины катастроф"}
+        ]
+        
+        return Response({
+            "success": True,
+            "data": custom_specialties,
+            "count": len(custom_specialties)
+        })
 
 
 @api_view(["GET"])
@@ -494,7 +712,7 @@ def doctor_profile_fields_info(request):
                 "languages_spoken": {"type": "json_array", "source": "languages_spoken", "required": False},
             },
             "professional_information": {
-                "specialty": {"type": "choice", "source": "specialty", "required": False, "choices": dict(Doctor.SPECIALTIES)},
+                                 "specialty": {"type": "choice", "source": "specialty", "required": False, "choices": "Custom specialties list"},
                 "years_of_experience": {"type": "integer", "source": "years_of_experience", "required": False},
                 "education": {"type": "text", "source": "education", "required": False},
                 "certifications": {"type": "json_array", "source": "certifications", "required": False},

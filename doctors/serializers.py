@@ -505,6 +505,7 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
     phone = serializers.CharField(required=False, allow_blank=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     
     # Professional fields
     specialization = serializers.ListField(
@@ -543,7 +544,7 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = [
-            'full_name', 'email', 'phone',
+            'full_name', 'email', 'phone', 'profile_picture',
             'specialization', 'experience', 'education', 'bio', 'languages', 'certifications',
             'date_of_birth', 'gender', 'address', 'country', 'region', 'district',
             'emergency_contact', 'medical_license', 'insurance',
@@ -571,6 +572,11 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
         
         if 'phone' in validated_data:
             instance.user.phone_number = validated_data.pop('phone')
+            instance.user.save()
+        
+        # Handle profile_picture updates
+        if 'profile_picture' in validated_data:
+            instance.user.profile_picture = validated_data.pop('profile_picture')
             instance.user.save()
         
         # Handle specialization (convert list to string for storage)
