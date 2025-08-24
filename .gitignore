@@ -15,3 +15,4 @@ accounts/migrations/0004_remove_user_created_by.py
 patients/migrations/0006_patientvaqtincha_created_by.py
 doctors/migrations/0006_doctor_availability_status_doctor_emergency_contact_and_more.py
 doctors/migrations/0006_doctor_active_patients_doctor_address_and_more.py
+/doctors/migrations
