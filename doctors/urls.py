@@ -3,7 +3,8 @@ from .views import (
     DoctorListView, DoctorDetailView, DoctorCreateView, DoctorProfileAPIView, DoctorProfileView, SpecialtyChoicesAPIView,
     doctor_dashboard_stats, doctor_schedule, doctor_specialties_list,
     doctor_specialties_with_stats, DoctorScheduleListView, DoctorScheduleDetailView,
-    DoctorProfileManagementView, doctor_profile_fields_info
+    DoctorProfileManagementView, doctor_profile_fields_info,
+    DoctorProfilePageView, DoctorProfileStatsView, DoctorProfileFieldsView, DoctorProfileOptionsView
 )
 
 urlpatterns = [
@@ -16,6 +17,12 @@ urlpatterns = [
     path('profile/fields/', doctor_profile_fields_info, name='doctor-profile-fields-info'),
     path('profile/view/', DoctorProfileView.as_view(), name='doctor-profile-view'),
     path('doctor/profile/', DoctorProfileAPIView.as_view(), name='doctor-profile-api'),
+    
+    # NEW: Profile page endpoints
+    path('profile/page/', DoctorProfilePageView.as_view(), name='doctor-profile-page'),
+    path('profile/stats/', DoctorProfileStatsView.as_view(), name='doctor-profile-stats'),
+    path('profile/fields-info/', DoctorProfileFieldsView.as_view(), name='doctor-profile-fields-info-new'),
+    path('profile/options/', DoctorProfileOptionsView.as_view(), name='doctor-profile-options'),
     
     # Specialty endpoints
     path('specialties/', doctor_specialties_list, name='doctor-specialties'),

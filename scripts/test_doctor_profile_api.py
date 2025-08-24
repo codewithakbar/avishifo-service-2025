@@ -1,417 +1,192 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
-Test script for Doctor Profile Management API
-Demonstrates GET, PUT, and PATCH methods for all profile information fields
+Test script for Doctor Profile API endpoints
+This script tests all the new profile page endpoints
 """
 
-import os
-import sys
-import django
+import requests
 import json
-from datetime import date
+import sys
+from datetime import datetime
 
-# Add the project directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Configuration
+BASE_URL = "http://localhost:8000"  # Change this to your server URL
+API_BASE = f"{BASE_URL}/api/doctors"
 
-# Set up Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'healthcare_api.settings')
-django.setup()
-
-from doctors.models import Doctor, Hospital
-from doctors.serializers import DoctorDetailSerializer
-from accounts.models import User
-
+# Test data
+TEST_PROFILE_DATA = {
+    "full_name": "Доктор Ахмедов Алишер",
+    "email": "alisher.ahmedov@example.com",
+    "phone": "+998 90 123 45 67",
+    "specialization": ["Кардиолог", "Эхокардиография"],
+    "experience": "15 лет",
+    "education": "Ташкентский медицинский университет",
+    "bio": "Опытный кардиолог с 15-летним стажем работы. Специализируюсь на лечении сердечно-сосудистых заболеваний.",
+    "languages": ["Узбекский", "Русский", "Английский"],
+    "certifications": "Сертификат кардиолога, Европейское общество кардиологов",
+    "date_of_birth": "1985-03-15",
+    "gender": "Мужской",
+    "address": "Улица Марифатчи, дом 15",
+    "country": "Узбекистан",
+    "region": "Хорезмская",
+    "district": "Ургенчский",
+    "emergency_contact": "+998 90 987 65 43",
+    "medical_license": "MD-12345",
+    "insurance": "Страховая компания 'Медицинская защита'",
+    "working_hours": "9:00-18:00",
+    "consultation_fee": "150,000 сум",
+    "availability": "Понедельник - Пятница"
+}
 
 def print_separator(title):
-    """Print a formatted separator with title"""
-    print("\n" + "=" * 60)
-    print(f" {title} ")
-    print("=" * 60)
+    """Print a separator with title"""
+    print("\n" + "="*60)
+    print(f" {title}")
+    print("="*60)
 
-
-def print_response_info(method, endpoint, data=None, response=None):
-    """Print formatted API call information"""
-    print(f"\n🔗 {method} {endpoint}")
-    if data:
-        print(f"📤 Request Data: {json.dumps(data, indent=2, ensure_ascii=False)}")
-    if response:
-        print(f"📥 Response: {json.dumps(response, indent=2, ensure_ascii=False)}")
-
-
-def create_sample_data():
-    """Create sample doctor data for testing"""
-    print_separator("Creating Sample Data")
-    
-    # Create hospital
-    hospital, created = Hospital.objects.get_or_create(
-        name="Республиканская клиническая больница",
-        defaults={
-            'address': "Улица Марифатчи, Хорезмский область, Узбекистан",
-            'phone': "+998901234567"
-        }
-    )
-    print(f"✅ Hospital: {hospital.name}")
-    
-    # Create user
-    user, created = User.objects.get_or_create(
-        username="akbar_doctor_test",
-        defaults={
-            'first_name': 'Akbar',
-            'last_name': 'Tugayevich',
-            'email': 'satipovakbar@gmail.com',
-            'user_type': 'doctor',
-            'phone_number': '+998901234567',
-            'date_of_birth': date(1990, 6, 12),
-            'address': 'Улица Марифатчи, Хорезмский область, Узбекистан',
-            'is_verified': True
-        }
-    )
-    print(f"✅ User: {user.full_name}")
-    
-    # Create doctor
-    doctor_data = {
-        'user': user,
-        'specialty': 'cardiology',
-        'license_number': 'MD123456',
-        'hospital': hospital,
-        'years_of_experience': 15,
-        'education': 'Ташкентский медицинский институт, 2010',
-        'consultation_fee': 150000.00,
-        'category': 'higher',
-        'main_workplace': 'Республиканская клиническая больница',
-        'medical_identifier': 'CARD001',
-        'degree': 'phd',
-        'certifications': [
-            'Сертификат кардиолога высшей категории',
-            'Сертификат по эхокардиографии'
-        ],
-        'consultation_schedule': {
-            'monday': '09:00-17:00',
-            'tuesday': '09:00-17:00',
-            'wednesday': '09:00-17:00',
-            'thursday': '09:00-17:00',
-            'friday': '09:00-17:00'
-        },
-        'online_consultation_available': True,
-        'languages_spoken': ['Русский', 'Узбекский', 'Английский'],
-        'work_email': 'akbar.cardio@hospital.uz',
-        'work_phone': '+998901234567',
-        'social_media_links': {
-            'linkedin': 'https://linkedin.com/in/akbar-tugayevich'
-        },
-        'bio': 'Опытный кардиолог с 15-летним стажем работы.',
-        'specializations': ['echocardiography', 'interventional_cardiology'],
-        'gender': 'male',
-        'emergency_contact': '+998901234568',
-        'insurance_info': 'Принимаю все основные страховые полисы',
-        'working_hours': 'Понедельник - Пятница: 09:00-17:00',
-        'availability_status': 'Доступен для консультаций',
-        'total_income': 4500000.00,
-        'rating': 4.9,
-        'reviews_count': 127,
-        'patients_accepted_count': 127,
-        'consultations_count': 89
-    }
-    
-    doctor, created = Doctor.objects.get_or_create(
-        user=user,
-        defaults=doctor_data
-    )
-    
-    if not created:
-        # Update existing doctor with new data
-        for key, value in doctor_data.items():
-            if key != 'user':
-                setattr(doctor, key, value)
-        doctor.save()
-    
-    print(f"✅ Doctor: {doctor.user.full_name} - {doctor.get_specialty_display()}")
-    return doctor
-
-
-def test_get_profile():
-    """Test GET method for retrieving doctor profile"""
-    print_separator("Testing GET Profile API")
-    
-    print("📋 This would be a GET request to: /api/doctors/profile/")
-    print("🔐 Requires authentication (doctor must be logged in)")
-    
-    # Simulate the response data
-    doctor = Doctor.objects.first()
-    if doctor:
-        serializer = DoctorDetailSerializer(doctor)
-        response_data = {
-            "success": True,
-            "message": "Doctor profile retrieved successfully",
-            "data": serializer.data
-        }
+def test_endpoint(method, url, data=None, headers=None, expected_status=200):
+    """Test an API endpoint and return the response"""
+    try:
+        if method.upper() == "GET":
+            response = requests.get(url, headers=headers)
+        elif method.upper() == "POST":
+            response = requests.post(url, json=data, headers=headers)
+        elif method.upper() == "PUT":
+            response = requests.put(url, json=data, headers=headers)
+        elif method.upper() == "PATCH":
+            response = requests.patch(url, json=data, headers=headers)
+        elif method.upper() == "DELETE":
+            response = requests.delete(url, headers=headers)
+        else:
+            print(f"❌ Unknown method: {method}")
+            return None
         
-        print_response_info("GET", "/api/doctors/profile/", response=response_data)
+        print(f"✅ {method.upper()} {url}")
+        print(f"   Status: {response.status_code}")
         
-        # Show key profile information
-        data = serializer.data
-        print("\n📊 Profile Summary:")
-        print(f"   👤 Full Name: {data['user']['first_name']} {data['user']['last_name']}")
-        print(f"   📧 Email: {data['user']['email']}")
-        print(f"   🏥 Specialty: {data['specialty_label']}")
-        print(f"   ⏰ Experience: {data['experience_text']}")
-        print(f"   ⭐ Rating: {data['formatted_rating']}")
-        print(f"   💰 Income: {data['income_formatted']}")
-        print(f"   🏥 Hospital: {data['hospital']['name'] if data['hospital'] else 'Не указано'}")
+        if response.status_code == expected_status:
+            print(f"   ✅ Expected status {expected_status}")
+        else:
+            print(f"   ❌ Expected status {expected_status}, got {response.status_code}")
         
-        return response_data
-    else:
-        print("❌ No doctor found for testing")
+        if response.content:
+            try:
+                response_data = response.json()
+                print(f"   Response: {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+            except json.JSONDecodeError:
+                print(f"   Response: {response.text}")
+        
+        return response
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request failed: {e}")
         return None
 
+def test_profile_page_endpoints():
+    """Test the profile page endpoints"""
+    print_separator("Testing Profile Page Endpoints")
+    
+    # Note: These endpoints require authentication
+    # In a real test, you would need to get a valid JWT token first
+    
+    print("🔒 Note: These endpoints require authentication (JWT token)")
+    print("   To test properly, you need to:")
+    print("   1. Login as a doctor user")
+    print("   2. Get the JWT token")
+    print("   3. Include it in the Authorization header")
+    
+    # Test endpoints without authentication (will return 401)
+    headers = {"Content-Type": "application/json"}
+    
+    # Test GET /profile/page/
+    print("\n--- Testing GET /profile/page/ ---")
+    test_endpoint("GET", f"{API_BASE}/profile/page/", headers=headers, expected_status=401)
+    
+    # Test PATCH /profile/page/
+    print("\n--- Testing PATCH /profile/page/ ---")
+    test_endpoint("PATCH", f"{API_BASE}/profile/page/", data=TEST_PROFILE_DATA, headers=headers, expected_status=401)
+    
+    # Test GET /profile/stats/
+    print("\n--- Testing GET /profile/stats/ ---")
+    test_endpoint("GET", f"{API_BASE}/profile/stats/", headers=headers, expected_status=401)
+    
+    # Test GET /profile/fields-info/
+    print("\n--- Testing GET /profile/fields-info/ ---")
+    test_endpoint("GET", f"{API_BASE}/profile/fields-info/", headers=headers, expected_status=401)
+    
+    # Test GET /profile/options/
+    print("\n--- Testing GET /profile/options/ ---")
+    test_endpoint("GET", f"{API_BASE}/profile/options/", headers=headers, expected_status=401)
 
-def test_put_profile():
-    """Test PUT method for complete profile update"""
-    print_separator("Testing PUT Profile API")
+def test_public_endpoints():
+    """Test endpoints that don't require authentication"""
+    print_separator("Testing Public Endpoints")
     
-    print("📋 This would be a PUT request to: /api/doctors/profile/")
-    print("🔐 Requires authentication (doctor must be logged in)")
+    # Test GET /specialties/
+    print("\n--- Testing GET /specialties/ ---")
+    test_endpoint("GET", f"{API_BASE}/specialties/", expected_status=200)
     
-    # Sample complete update data
-    update_data = {
-        "user": {
-            "first_name": "Akbar",
-            "last_name": "Tugayevich",
-            "email": "akbar.updated@gmail.com",
-            "phone_number": "+998901234567",
-            "date_of_birth": "1990-06-12",
-            "address": "Улица Марифатчи, Хорезмский область, Узбекистан"
-        },
-        "specialty": "cardiology",
-        "years_of_experience": 16,
-        "education": "Ташкентский медицинский институт, 2010 - Обновлено",
-        "consultation_fee": "180000.00",
-        "category": "higher",
-        "degree": "phd",
-        "bio": "Опытный кардиолог с 16-летним стажем работы. Специализируюсь на диагностике и лечении сердечно-сосудистых заболеваний. Обновленная биография.",
-        "specializations": ["echocardiography", "interventional_cardiology", "preventive_cardiology"],
-        "gender": "male",
-        "emergency_contact": "+998901234568",
-        "insurance_info": "Принимаю все основные страховые полисы. Работаю с ведущими страховыми компаниями.",
-        "working_hours": "Понедельник - Пятница: 09:00-18:00, Суббота: 09:00-14:00",
-        "availability_status": "Доступен для консультаций по предварительной записи",
-        "languages_spoken": ["Русский", "Узбекский", "Английский", "Немецкий"],
-        "work_email": "akbar.cardio.updated@hospital.uz",
-        "work_phone": "+998901234567",
-        "social_media_links": {
-            "linkedin": "https://linkedin.com/in/akbar-tugayevich",
-            "researchgate": "https://researchgate.net/profile/akbar-tugayevich"
-        },
-        "consultation_schedule": {
-            "monday": "09:00-18:00",
-            "tuesday": "09:00-18:00",
-            "wednesday": "09:00-18:00",
-            "thursday": "09:00-18:00",
-            "friday": "09:00-18:00",
-            "saturday": "09:00-14:00"
-        },
-        "online_consultation_available": True,
-        "certifications": [
-            "Сертификат кардиолога высшей категории - Обновлено",
-            "Сертификат по эхокардиографии - Обновлено",
-            "Сертификат по интервенционной кардиологии - Новый"
-        ]
+    # Test GET /specialties/stats/
+    print("\n--- Testing GET /specialties/stats/ ---")
+    test_endpoint("GET", f"{API_BASE}/specialties/stats/", expected_status=200)
+    
+    # Test GET /specialties/choices/
+    print("\n--- Testing GET /specialties/choices/ ---")
+    test_endpoint("GET", f"{API_BASE}/specialties/choices/", expected_status=200)
+
+def test_with_authentication():
+    """Test endpoints with authentication (requires valid token)"""
+    print_separator("Testing with Authentication")
+    
+    print("🔑 To test with authentication, you need to:")
+    print("   1. Create a doctor user account")
+    print("   2. Login to get JWT token")
+    print("   3. Use the token in requests")
+    
+    print("\nExample with token:")
+    print("""
+    # Get token from login
+    login_response = requests.post(f"{BASE_URL}/api/accounts/login/", {
+        "username": "doctor_username",
+        "password": "doctor_password"
+    })
+    token = login_response.json()["access"]
+    
+    # Use token in requests
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
     }
     
-    print_response_info("PUT", "/api/doctors/profile/", data=update_data)
-    
-    print("\n📝 This request would:")
-    print("   ✅ Update all user information (name, email, phone, etc.)")
-    print("   ✅ Update all doctor professional information")
-    print("   ✅ Update work schedule and availability")
-    print("   ✅ Update contact information and social media")
-    print("   ✅ Update certifications and specializations")
-    
-    return update_data
-
-
-def test_patch_profile():
-    """Test PATCH method for partial profile update"""
-    print_separator("Testing PATCH Profile API")
-    
-    print("📋 This would be a PATCH request to: /api/doctors/profile/")
-    print("🔐 Requires authentication (doctor must be logged in)")
-    
-    # Sample partial update data
-    partial_update_data = {
-        "bio": "Обновленная биография с новыми достижениями и специализациями.",
-        "consultation_fee": "200000.00",
-        "working_hours": "Понедельник - Пятница: 09:00-19:00, Суббота: 09:00-15:00",
-        "availability_status": "Доступен по предварительной записи, возможны экстренные консультации",
-        "emergency_contact": "+998901234569",
-        "insurance_info": "Расширенный список страховых компаний, включая международные"
-    }
-    
-    print_response_info("PATCH", "/api/doctors/profile/", data=partial_update_data)
-    
-    print("\n📝 This request would:")
-    print("   ✅ Update only specific fields (bio, consultation fee, working hours)")
-    print("   ✅ Keep all other fields unchanged")
-    print("   ✅ Update emergency contact and insurance information")
-    print("   ✅ Modify availability status")
-    
-    return partial_update_data
-
-
-def test_profile_fields_info():
-    """Test GET method for profile fields information"""
-    print_separator("Testing Profile Fields Info API")
-    
-    print("📋 This would be a GET request to: /api/doctors/profile/fields/")
-    print("🔐 Requires authentication")
-    
-    # Simulate the response data
-    fields_info = {
-        "success": True,
-        "message": "Profile fields information retrieved successfully",
-        "data": {
-            "personal_information": {
-                "full_name": {"type": "string", "source": "user.first_name + user.last_name", "required": True},
-                "email": {"type": "email", "source": "user.email", "required": True},
-                "bio": {"type": "text", "source": "bio", "required": False},
-                "date_of_birth": {"type": "date", "source": "user.date_of_birth", "required": False},
-                "gender": {"type": "choice", "source": "gender", "required": False, "choices": {
-                    "male": "Мужской",
-                    "female": "Женский",
-                    "other": "Другой",
-                    "not_specified": "Не указано"
-                }},
-                "languages_spoken": {"type": "json_array", "source": "languages_spoken", "required": False},
-            },
-            "professional_information": {
-                "specialty": {"type": "choice", "source": "specialty", "required": False, "choices": {
-                    "cardiology": "Кардиология",
-                    "neurology": "Неврология",
-                    "pediatrics": "Педиатрия"
-                }},
-                "years_of_experience": {"type": "integer", "source": "years_of_experience", "required": False},
-                "education": {"type": "text", "source": "education", "required": False},
-                "certifications": {"type": "json_array", "source": "certifications", "required": False},
-                "license_number": {"type": "string", "source": "license_number", "required": False},
-                "insurance_info": {"type": "text", "source": "insurance_info", "required": False},
-            },
-            "work_schedule": {
-                "working_hours": {"type": "text", "source": "working_hours", "required": False},
-                "availability_status": {"type": "string", "source": "availability_status", "required": False},
-                "consultation_fee": {"type": "decimal", "source": "consultation_fee", "required": False},
-            },
-            "contact_information": {
-                "phone": {"type": "string", "source": "user.phone_number", "required": False},
-                "emergency_contact": {"type": "string", "source": "emergency_contact", "required": False},
-                "address": {"type": "text", "source": "user.address", "required": False},
-            }
-        }
-    }
-    
-    print_response_info("GET", "/api/doctors/profile/fields/", response=fields_info)
-    
-    print("\n📋 This endpoint provides:")
-    print("   ✅ Field types and validation rules")
-    print("   ✅ Required vs optional fields")
-    print("   ✅ Available choices for dropdown fields")
-    print("   ✅ Field source mapping")
-    print("   ✅ Frontend form generation support")
-    
-    return fields_info
-
-
-def test_api_endpoints_summary():
-    """Show summary of all available API endpoints"""
-    print_separator("Available API Endpoints")
-    
-    endpoints = [
-        {
-            "method": "GET",
-            "endpoint": "/api/doctors/profile/",
-            "description": "Get complete doctor profile",
-            "authentication": "Required",
-            "response": "Full profile data with computed fields"
-        },
-        {
-            "method": "PUT",
-            "endpoint": "/api/doctors/profile/",
-            "description": "Update complete doctor profile",
-            "authentication": "Required",
-            "request": "Complete profile data",
-            "response": "Updated profile data"
-        },
-        {
-            "method": "PATCH",
-            "endpoint": "/api/doctors/profile/",
-            "description": "Partially update doctor profile",
-            "authentication": "Required",
-            "request": "Partial profile data",
-            "response": "Updated profile data"
-        },
-        {
-            "method": "GET",
-            "endpoint": "/api/doctors/profile/fields/",
-            "description": "Get profile fields information",
-            "authentication": "Required",
-            "response": "Field types, validation rules, choices"
-        },
-        {
-            "method": "GET",
-            "endpoint": "/api/doctors/",
-            "description": "List all doctors",
-            "authentication": "Required",
-            "response": "List of doctor summaries"
-        },
-        {
-            "method": "GET",
-            "endpoint": "/api/doctors/{id}/",
-            "description": "Get specific doctor details",
-            "authentication": "Required",
-            "response": "Complete doctor profile"
-        }
-    ]
-    
-    for endpoint in endpoints:
-        print(f"\n🔗 {endpoint['method']} {endpoint['endpoint']}")
-        print(f"   📝 {endpoint['description']}")
-        print(f"   🔐 {endpoint['authentication']}")
-        if 'request' in endpoint:
-            print(f"   📤 {endpoint['request']}")
-        print(f"   📥 {endpoint['response']}")
-
+    # Test authenticated endpoints
+    response = requests.get(f"{API_BASE}/profile/page/", headers=headers)
+    print(response.json())
+    """)
 
 def main():
-    """Main function to run all tests"""
-    print_separator("Doctor Profile Management API Testing")
-    print("This script demonstrates the API endpoints for doctor profile management")
-    print("All endpoints require authentication and are designed for the logged-in doctor")
+    """Main test function"""
+    print("🚀 Doctor Profile API Test Script")
+    print(f"Testing against: {BASE_URL}")
+    print(f"API Base: {API_BASE}")
     
     try:
-        # Create sample data
-        doctor = create_sample_data()
+        # Test public endpoints first
+        test_public_endpoints()
         
-        # Test all API methods
-        test_get_profile()
-        test_put_profile()
-        test_patch_profile()
-        test_profile_fields_info()
+        # Test profile page endpoints (without auth)
+        test_profile_page_endpoints()
         
-        # Show API endpoints summary
-        test_api_endpoints_summary()
+        # Show authentication instructions
+        test_with_authentication()
         
-        print_separator("Testing Complete")
-        print("✅ All API methods demonstrated successfully!")
-        print("\n📚 Next steps:")
-        print("   1. Test the actual API endpoints with your frontend")
-        print("   2. Implement proper error handling")
-        print("   3. Add field validation as needed")
-        print("   4. Test with different user types and permissions")
+        print_separator("Test Summary")
+        print("✅ Public endpoints tested")
+        print("🔒 Profile endpoints require authentication")
+        print("📚 Check the API documentation for proper usage")
         
     except Exception as e:
-        print(f"❌ Error during testing: {e}")
-        import traceback
-        traceback.print_exc()
-
+        print(f"❌ Test failed with error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

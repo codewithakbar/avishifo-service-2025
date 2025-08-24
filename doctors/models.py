@@ -199,6 +199,94 @@ class Doctor(models.Model):
         help_text="Общий доход врача"
     )
 
+    # 9️⃣ NEW FIELDS from Frontend Profile Page
+    date_of_birth = models.DateField(
+        blank=True, 
+        null=True,
+        help_text="Дата рождения врача"
+    )
+    address = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Полный адрес врача"
+    )
+    country = models.CharField(
+        max_length=100,
+        blank=True, 
+        null=True,
+        help_text="Страна"
+    )
+    region = models.CharField(
+        max_length=100,
+        blank=True, 
+        null=True,
+        help_text="Область/Регион"
+    )
+    district = models.CharField(
+        max_length=100,
+        blank=True, 
+        null=True,
+        help_text="Район"
+    )
+    medical_license = models.CharField(
+        max_length=100,
+        blank=True, 
+        null=True,
+        help_text="Медицинская лицензия"
+    )
+    insurance = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Страховая информация"
+    )
+    availability = models.CharField(
+        max_length=100,
+        blank=True, 
+        null=True,
+        help_text="Доступность (например: 'Понедельник - Пятница')"
+    )
+    
+    # 🔟 Statistics fields for frontend display
+    total_patients = models.PositiveIntegerField(
+        default=0,
+        help_text="Общее количество пациентов"
+    )
+    monthly_consultations = models.PositiveIntegerField(
+        default=0,
+        help_text="Количество консультаций в месяц"
+    )
+    total_reviews = models.PositiveIntegerField(
+        default=0,
+        help_text="Общее количество отзывов"
+    )
+    completed_treatments = models.PositiveIntegerField(
+        default=0,
+        help_text="Завершенные курсы лечения"
+    )
+    active_patients = models.PositiveIntegerField(
+        default=0,
+        help_text="Активные пациенты"
+    )
+    monthly_income = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Месячный доход"
+    )
+    research_papers = models.PositiveIntegerField(
+        default=0,
+        help_text="Количество научных работ"
+    )
+    conferences_attended = models.PositiveIntegerField(
+        default=0,
+        help_text="Количество посещенных конференций"
+    )
+    awards = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Награды и достижения"
+    )
+
     def __str__(self):
         return f"Dr. {self.user.full_name} - {self.get_specialty_display() if self.specialty else 'Специализация не указана'}"
     
