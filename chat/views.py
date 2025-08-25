@@ -150,11 +150,11 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
 
             # Determine the model to use based on selection
             if selected_model == "chatgpt-5":
-                model_to_use = "gpt-5"
+                model_to_use = "gpt-4o"
             elif selected_model == "avishifo-radiolog":
-                model_to_use = "gpt-5"
+                model_to_use = "gpt-4o"
             else:
-                model_to_use = "gpt-5"
+                model_to_use = "gpt-4o"
 
             try:
                 # Call GPT with selected model
