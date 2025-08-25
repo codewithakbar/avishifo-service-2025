@@ -8,6 +8,7 @@ User = get_user_model()
 
 class ChatSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200, null=True, blank=True)  # Chat session title
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -19,6 +20,7 @@ class Message(models.Model):
         max_length=10, choices=(("user", "User"), ("assistant", "Assistant"))
     )
     content = models.TextField()
+    model_used = models.CharField(max_length=20, null=True, blank=True)  # Store which model was used
     created_at = models.DateTimeField(auto_now_add=True)
 
 

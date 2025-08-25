@@ -17,3 +17,5 @@ doctors/migrations/0006_doctor_availability_status_doctor_emergency_contact_and_
 doctors/migrations/0006_doctor_active_patients_doctor_address_and_more.py
 /doctors/migrations
 /venv
+chat/migrations/0005_chatsession_title.py
+chat/migrations/0004_message_model_used.py
