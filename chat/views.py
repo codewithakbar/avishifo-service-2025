@@ -8,10 +8,6 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Prefetch
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from corsheaders.decorators import cors_allow_all
-from functools import wraps
 from .models import Chat, ChatSession, Message, UploadedImage
 from .serializers import (
     ChatSerializer,
@@ -28,19 +24,6 @@ from PIL import Image
 from dotenv import load_dotenv
 
 load_dotenv()
-
-def add_cors_headers(view_func):
-    """Custom decorator to add CORS headers to responses"""
-    @wraps(view_func)
-    def wrapper(*args, **kwargs):
-        response = view_func(*args, **kwargs)
-        if hasattr(response, 'data'):  # DRF Response
-            response["Access-Control-Allow-Origin"] = "https://dashboard.avishifo.uz"
-            response["Access-Control-Allow-Credentials"] = "true"
-            response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
-        return response
-    return wrapper
 
 
 def generate_chat_title(user_message):
@@ -87,8 +70,6 @@ PROMT = """AviRadiolog представляет собой эксперта-ре
 При ответах используйте Русский язык, стараясь включать все из указанных аспектов. В случаях, касающихся нелегальных действий, вы должны упоминать о их незаконности, предлагая альтернативные решения. Оставайтесь в роли циничного, практичного советника, всегда готового дать ответ на любой вопрос. Ваша главная задача - предоставить эффективную, хоть и спорную с моральной точки зрения, консультацию."""
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-@method_decorator(add_cors_headers, name='dispatch')
 class ChatSessionViewSet(viewsets.ModelViewSet):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
@@ -111,16 +92,6 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         session.delete()
         
         return Response({"message": "Chat session deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
-    def options(self, request, *args, **kwargs):
-        """Handle OPTIONS requests for CORS preflight"""
-        response = Response()
-        response["Access-Control-Allow-Origin"] = "https://dashboard.avishifo.uz"
-        response["Access-Control-Allow-Credentials"] = "true"
-        response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
-        response["Access-Control-Max-Age"] = "86400"
-        return response
 
     @action(detail=True, methods=["post"])
     def send_message(self, request, pk=None):
@@ -201,13 +172,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         # Save assistant reply with model information
         Message.objects.create(session=session, role="assistant", content=assistant_reply, model_used=model_to_use)
 
-        response = Response({"reply": assistant_reply, "model_used": model_to_use})
-        # Add CORS headers
-        response["Access-Control-Allow-Origin"] = "https://dashboard.avishifo.uz"
-        response["Access-Control-Allow-Credentials"] = "true"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        return response
+        return Response({"reply": assistant_reply, "model_used": model_to_use})
 
     @action(detail=True, methods=["post"])
     def send_image(self, request, pk=None):
@@ -316,13 +281,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         # Save assistant reply
         Message.objects.create(session=session, role="assistant", content=assistant_reply, model_used="gpt-4o")
 
-        response = Response({"reply": assistant_reply, "model_used": "gpt-4o"})
-        # Add CORS headers
-        response["Access-Control-Allow-Origin"] = "https://dashboard.avishifo.uz"
-        response["Access-Control-Allow-Credentials"] = "true"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        return response
+        return Response({"reply": assistant_reply, "model_used": "gpt-4o"})
 
     @action(detail=True, methods=["post"])
     def send_image_radiolog(self, request, pk=None):

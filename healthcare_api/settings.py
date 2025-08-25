@@ -54,7 +54,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'healthcare_api.middleware.CustomCorsMiddleware',  # Custom CORS middleware
 ]
 
 
@@ -168,56 +167,8 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = False  # Changed to False for security
-CORS_ALLOWED_ORIGINS = [
-    "https://dashboard.avishifo.uz",
-    "https://new.avishifo.uz",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
-
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-
-# Additional CORS settings for better compatibility
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# Allow credentials (cookies, authorization headers)
-CORS_ALLOW_CREDENTIALS = True
-
-# Handle preflight requests
-CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
-
-# Additional CORS settings for production
-CORS_ORIGIN_WHITELIST = [
-    "https://dashboard.avishifo.uz",
-    "https://new.avishifo.uz",
-]
-
-# Allow all headers and methods for development
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
