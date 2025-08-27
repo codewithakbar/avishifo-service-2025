@@ -20,3 +20,4 @@ doctors/migrations/0006_doctor_active_patients_doctor_address_and_more.py
 chat/migrations/0005_chatsession_title.py
 chat/migrations/0004_message_model_used.py
 .DS_Store
+chat/migrations/0004_chatsession_title_message_model_used.py
