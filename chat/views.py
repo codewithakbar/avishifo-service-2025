@@ -273,7 +273,7 @@ def get_system_prompt(model_name):
         return "Ты — AviShifo, медицинский ИИ-ассистент. Анализируй медицинские данные и давай рекомендации."
 
 
-def call_openai_api(messages, model="gpt-4o", max_tokens=1500):
+def call_openai_api(messages, model="gpt-4o", max_tokens=3000):
     """Centralized function to call OpenAI API with proper error handling"""
     if not client:
         raise Exception("OpenAI client not initialized - API key missing")
@@ -283,18 +283,22 @@ def call_openai_api(messages, model="gpt-4o", max_tokens=1500):
         total_chars = sum(len(str(msg.get("content", ""))) for msg in messages)
         print(f"Total message characters: {total_chars}")
 
-        if total_chars > 32000:  # Approximate token limit for gpt-4o
+        if total_chars > 50000:  # Increased limit for better context handling
             print("Message too long, truncating...")
             # Keep only system prompt and last few messages
             truncated_messages = [messages[0]]  # System prompt
-            for msg in messages[-3:]:  # Last 3 messages
+            for msg in messages[-5:]:  # Keep last 5 messages for better context
                 if msg.get("role") != "system":
                     truncated_messages.append(msg)
             messages = truncated_messages
             print(f"Truncated to {len(messages)} messages")
 
         response = client.chat.completions.create(
-            model=model, messages=messages, max_tokens=max_tokens
+            model=model, 
+            messages=messages, 
+            max_tokens=max_tokens,
+            temperature=0.3,  # Add some creativity while maintaining accuracy
+            top_p=0.9,  # Better response quality
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -397,8 +401,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             model_to_use = "gpt-4o"  # Default model
 
             try:
-                # Call OpenAI API
-                assistant_reply = call_openai_api(messages, model_to_use)
+                # Call OpenAI API with increased token limit for better quality responses
+                assistant_reply = call_openai_api(messages, model_to_use, max_tokens=3000)
 
                 # Save assistant reply
                 Message.objects.create(
@@ -536,8 +540,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 },
             ]
 
-            # Call OpenAI Vision API
-            analysis = call_openai_api(messages, "gpt-4o", max_tokens=1500)
+            # Call OpenAI Vision API with increased token limit for detailed analysis
+            analysis = call_openai_api(messages, "gpt-4o", max_tokens=3000)
 
             # Save assistant reply
             Message.objects.create(
@@ -588,8 +592,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             # Add current user message
             messages.append({"role": "user", "content": user_message})
 
-            # Call OpenAI API
-            assistant_reply = call_openai_api(messages, "gpt-4o")
+            # Call OpenAI API with increased token limit
+            assistant_reply = call_openai_api(messages, "gpt-4o", max_tokens=3000)
 
             # Save assistant reply
             Message.objects.create(
@@ -654,8 +658,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 },
             ]
 
-            # Call OpenAI Vision API
-            analysis = call_openai_api(messages, "gpt-4o", max_tokens=1500)
+            # Call OpenAI Vision API with increased token limit for detailed analysis
+            analysis = call_openai_api(messages, "gpt-4o", max_tokens=3000)
 
             # Save assistant reply
             Message.objects.create(
@@ -749,8 +753,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 {"role": "user", "content": user_content_parts},
             ]
 
-            # Call OpenAI Vision API
-            analysis = call_openai_api(messages, "gpt-4o", max_tokens=1500)
+            # Call OpenAI Vision API with increased token limit for detailed analysis
+            analysis = call_openai_api(messages, "gpt-4o", max_tokens=3000)
 
             # Save assistant reply
             Message.objects.create(
