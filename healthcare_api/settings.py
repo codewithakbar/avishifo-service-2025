@@ -46,6 +46,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'healthcare_api.cors_middleware.CustomCorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -202,6 +203,14 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+]
+
+# Additional CORS settings for better compatibility
+CORS_PREFLIGHT_MAX_AGE = 86400
+CORS_ALLOW_PRIVATE_NETWORK = True
+CORS_EXPOSE_HEADERS = [
+    "content-type",
+    "x-csrftoken",
 ]
 
 # Celery Configuration

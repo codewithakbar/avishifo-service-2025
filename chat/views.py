@@ -8,6 +8,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Prefetch
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_http_methods
 from .models import Chat, ChatSession, Message, UploadedImage
 from .serializers import (
     ChatSerializer,
@@ -33,6 +37,15 @@ if not openai_api_key:
 else:
     print(f"OpenAI API key is set: {openai_api_key[:10]}...")
     client = OpenAI(api_key=openai_api_key)
+
+
+def add_cors_headers(response):
+    """Add CORS headers to response"""
+    response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    response["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 
 def generate_chat_title(user_message):
@@ -381,6 +394,18 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return add_cors_headers(response)
+    
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return add_cors_headers(response)
+    
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        return add_cors_headers(response)
 
     def destroy(self, request, *args, **kwargs):
         """Delete a chat session and all its messages"""
@@ -397,9 +422,14 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_204_NO_CONTENT,
         )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post", "options"])
     def send_message(self, request, pk=None):
         """Send a text message and get AI response"""
+        # Handle preflight OPTIONS request
+        if request.method == "OPTIONS":
+            response = Response()
+            return add_cors_headers(response)
+            
         try:
             session = self.get_object()
             print(f"Processing message for session: {session.id}")
@@ -411,10 +441,11 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             print(f"Selected model: {selected_model}")
 
             if not user_message:
-                return Response(
+                response = Response(
                     {"error": "Message content is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+                return add_cors_headers(response)
 
             # Generate title for the chat session if it's the first message
             if not session.title and session.messages.count() == 0:
@@ -459,12 +490,13 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                     model_used=model_to_use,
                 )
 
-                return Response({"reply": assistant_reply, "model_used": model_to_use})
+                response = Response({"reply": assistant_reply, "model_used": model_to_use})
+                return add_cors_headers(response)
 
             except Exception as openai_error:
                 print(f"OpenAI API error: {openai_error}")
                 # Save a fallback response
-                fallback_reply = "Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте еще раз."
+                fallback_reply = "Извините, произошла ошибка при подключении к ИИ сервису. Проверьте подключение к интернету и попробуйте снова."
                 Message.objects.create(
                     session=session,
                     role="assistant",
@@ -472,7 +504,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                     model_used="error",
                 )
 
-                return Response(
+                response = Response(
                     {
                         "reply": fallback_reply,
                         "model_used": "error",
@@ -480,25 +512,33 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                     },
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
+                return add_cors_headers(response)
 
         except Exception as e:
             print(f"Error in send_message: {e}")
-            return Response(
+            response = Response(
                 {"error": "Internal server error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+            return add_cors_headers(response)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post", "options"])
     def send_image(self, request, pk=None):
         """Send an image for AI analysis"""
+        # Handle preflight OPTIONS request
+        if request.method == "OPTIONS":
+            response = Response()
+            return add_cors_headers(response)
+            
         try:
             session = self.get_object()
 
             image_file = request.FILES.get("image")
             if not image_file:
-                return Response(
+                response = Response(
                     {"error": "Rasm yuborilmadi"}, status=status.HTTP_400_BAD_REQUEST
                 )
+                return add_cors_headers(response)
 
             # Convert image to base64
             image_bytes = image_file.read()
@@ -586,7 +626,8 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 session=session, role="assistant", content=analysis, model_used="gpt-4o"
             )
 
-            return Response({"reply": analysis, "model_used": "gpt-4o"})
+            response = Response({"reply": analysis, "model_used": "gpt-4o"})
+            return add_cors_headers(response)
 
         except Exception as e:
             print(f"Error in send_image: {e}")
@@ -597,10 +638,11 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 content=fallback_reply,
                 model_used="error",
             )
-            return Response(
+            response = Response(
                 {"reply": fallback_reply, "model_used": "error", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+            return add_cors_headers(response)
 
     @action(detail=True, methods=["post"])
     def send_message_radiolog(self, request, pk=None):
