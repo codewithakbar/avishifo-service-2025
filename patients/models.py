@@ -250,7 +250,7 @@ class Patient(models.Model):
 
 class MedicalRecord(models.Model):
     patient = models.ForeignKey(
-        Patient, on_delete=models.CASCADE, related_name="patient_medical_records"
+        PatientVaqtincha, on_delete=models.CASCADE, related_name="patient_medical_records"
     )
     # Используем AUTH_USER_MODEL для доктора, если доктора - это пользователи с определенной ролью
     # Если у вас есть отдельная модель Doctor, замените settings.AUTH_USER_MODEL на Doctor

@@ -118,9 +118,9 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
 
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
-    patient = PatientSerializer(read_only=True)  # Для чтения
+    patient = PatientVaqtinchaSerializer(read_only=True)  # Для чтения
     patient_id = serializers.PrimaryKeyRelatedField(
-        queryset=Patient.objects.all(), source="patient", write_only=True
+        queryset=PatientVaqtincha.objects.all(), source="patient", write_only=True
     )  # Для записи
 
     doctor = BasicUserSerializer(read_only=True)  # Для чтения
