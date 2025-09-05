@@ -46,6 +46,19 @@ class PatientVaqtincha(models.Model):
     )
     address = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    STATUS_CHOICES = [
+        ('active', 'Активный'),
+        ('archived', 'Архивный'),
+        ('deleted', 'Удаленный'),
+    ]
+    status = models.CharField(
+        max_length=10, 
+        choices=STATUS_CHOICES, 
+        default='active'
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
 

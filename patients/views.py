@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from patients.permissions import IsDoctorUser
 
@@ -111,11 +112,132 @@ class PatientRetrieveAPIView(RetrieveAPIView):
     lookup_field = "id"  # or use 'pk' if preferred
 
 
+class PatientUpdateAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request, id):
+        try:
+            # Convert string ID to integer for database lookup
+            patient_id = int(id)
+            patient = PatientVaqtincha.objects.get(id=patient_id)
+            
+            # Check if user has permission to update this patient
+            # For now, allow all authenticated users to update patients
+            # if patient.created_by != request.user and not request.user.is_staff:
+            #     return Response(
+            #         {"error": "You don't have permission to update this patient"},
+            #         status=status.HTTP_403_FORBIDDEN
+            #     )
+            
+            serializer = PatientVaqtinchaSerializer(patient, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "message": "Patient updated successfully",
+                    "data": serializer.data
+                })
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except PatientVaqtincha.DoesNotExist:
+            return Response(
+                {"error": "Patient not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class PatientDeleteAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def delete(self, request, id):
+        try:
+            # Convert string ID to integer for database lookup
+            patient_id = int(id)
+            patient = PatientVaqtincha.objects.get(id=patient_id)
+            
+            # Check if user has permission to delete this patient
+            # For now, allow all authenticated users to delete patients
+            # if patient.created_by != request.user and not request.user.is_staff:
+            #     return Response(
+            #         {"error": "You don't have permission to delete this patient"},
+            #         status=status.HTTP_403_FORBIDDEN
+            #     )
+            
+            # Soft delete - update status to deleted
+            patient.status = 'deleted'
+            patient.deleted_at = timezone.now()
+            patient.save()
+            
+            return Response({
+                "message": "Patient deleted successfully"
+            })
+            
+        except PatientVaqtincha.DoesNotExist:
+            return Response(
+                {"error": "Patient not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class PatientArchiveAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request, id):
+        try:
+            # Convert string ID to integer for database lookup
+            patient_id = int(id)
+            patient = PatientVaqtincha.objects.get(id=patient_id)
+            
+            # Check if user has permission to archive this patient
+            # For now, allow all authenticated users to archive patients
+            # if patient.created_by != request.user and not request.user.is_staff:
+            #     return Response(
+            #         {"error": "You don't have permission to archive this patient"},
+            #         status=status.HTTP_403_FORBIDDEN
+            #     )
+            
+            # Update status to archived
+            patient.status = 'archived'
+            patient.archived_at = timezone.now()
+            patient.save()
+            
+            serializer = PatientVaqtinchaSerializer(patient)
+            return Response({
+                "message": "Patient archived successfully",
+                "data": serializer.data
+            })
+            
+        except PatientVaqtincha.DoesNotExist:
+            return Response(
+                {"error": "Patient not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
 class PatientCreateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]  # Faqat tizimga kirgan foydalanuvchilar uchun
 
     def post(self, request):
-        serializer = PatientVaqtinchaSerializer(data=request.data)
+        # Ensure status is set to 'active' if not provided
+        data = request.data.copy()
+        if 'status' not in data:
+            data['status'] = 'active'
+            
+        serializer = PatientVaqtinchaSerializer(data=data)
         if serializer.is_valid():
             serializer.save(created_by=self.request.user)  # created_by ni belgilaymiz
             return Response(

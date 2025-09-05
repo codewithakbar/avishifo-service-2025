@@ -1,7 +1,7 @@
 from django.urls import path, include
 from .views import (
     KasallikTarixiAPIView, PatientCreateAPIView, PatientListAPIView, PatientListView, PatientDetailView, PatientCreateView, PatientRetrieveAPIView,
-    patient_medical_summary
+    PatientUpdateAPIView, PatientDeleteAPIView, PatientArchiveAPIView, patient_medical_summary
 )
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -37,7 +37,10 @@ urlpatterns = [
 
     path('create/', PatientCreateAPIView.as_view(), name='patient-create'),
     path('patientlar/', PatientListAPIView.as_view(), name='patient-list'),
-    path('patientlar/<int:id>/', PatientRetrieveAPIView.as_view(), name='patient-detail'),
+    path('patientlar/<str:id>/', PatientRetrieveAPIView.as_view(), name='patient-detail'),
+    path('patientlar/<str:id>/update/', PatientUpdateAPIView.as_view(), name='patient-update'),
+    path('patientlar/<str:id>/delete/', PatientDeleteAPIView.as_view(), name='patient-delete'),
+    path('patientlar/<str:id>/archive/', PatientArchiveAPIView.as_view(), name='patient-archive'),
 
     path('kasallik-tarixi/', KasallikTarixiAPIView.as_view(), name='kasallik-tarixi'),
     path('kasallik-tarixi/<int:pk>/', KasallikTarixiAPIView.as_view(), name='kasalliktarixi-update'),
