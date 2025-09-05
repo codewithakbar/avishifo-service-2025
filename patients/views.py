@@ -205,14 +205,29 @@ class PatientArchiveAPIView(APIView):
             #         status=status.HTTP_403_FORBIDDEN
             #     )
             
-            # Update status to archived
-            patient.status = 'archived'
-            patient.archived_at = timezone.now()
+            # Get status from request body, default to 'archived' if not provided
+            new_status = request.data.get('status', 'archived')
+            
+            # Update status
+            patient.status = new_status
+            
+            if new_status == 'archived':
+                patient.archived_at = timezone.now()
+                patient.deleted_at = None
+            elif new_status == 'active':
+                patient.archived_at = None
+                patient.deleted_at = None
+            elif new_status == 'deleted':
+                patient.deleted_at = timezone.now()
+                patient.archived_at = None
+                
             patient.save()
+            
+            print(f"Patient {patient_id} status updated to: {patient.status}")
             
             serializer = PatientVaqtinchaSerializer(patient)
             return Response({
-                "message": "Patient archived successfully",
+                "message": f"Patient status updated to {new_status} successfully",
                 "data": serializer.data
             })
             
