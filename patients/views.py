@@ -442,7 +442,38 @@ class PrescribedMedicationViewSet(viewsets.ModelViewSet):
         return PrescribedMedicationSerializer
 
     def get_queryset(self):
-        return PrescribedMedication.objects.all()
+        user = self.request.user
+        patient_id = self.request.query_params.get('patient_id')
+        
+        if patient_id:
+            # Filter medications for a specific patient
+            # Note: MedicalRecord uses PatientVaqtincha, not Patient
+            try:
+                patient = PatientVaqtincha.objects.get(id=patient_id)
+                # Get all medical records for this patient
+                medical_records = MedicalRecord.objects.filter(patient=patient)
+                # Get all medications for these medical records
+                return PrescribedMedication.objects.filter(
+                    medical_record__in=medical_records
+                ).select_related('medical_record__patient')
+            except PatientVaqtincha.DoesNotExist:
+                return PrescribedMedication.objects.none()
+        elif user.user_type == 'patient' and hasattr(user, 'patient_profile'):
+            # Patient can only see their own medications
+            # This would need to be updated to work with PatientVaqtincha
+            medical_records = MedicalRecord.objects.filter(patient=user.patient_profile)
+            return PrescribedMedication.objects.filter(
+                medical_record__in=medical_records
+            ).select_related('medical_record__patient')
+        elif user.user_type == 'doctor' and hasattr(user, 'doctor_profile'):
+            # Doctor can see medications from their medical records
+            medical_records = MedicalRecord.objects.filter(doctor=user.doctor_profile)
+            return PrescribedMedication.objects.filter(
+                medical_record__in=medical_records
+            ).select_related('medical_record__patient')
+        else:
+            # Super admin or other users see all medications
+            return PrescribedMedication.objects.all().select_related('medical_record__patient')
 
 
 class VitalSignViewSet(viewsets.ModelViewSet):
