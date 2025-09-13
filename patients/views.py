@@ -486,7 +486,37 @@ class VitalSignViewSet(viewsets.ModelViewSet):
         return VitalSignSerializer
 
     def get_queryset(self):
-        return VitalSign.objects.all()
+        user = self.request.user
+        patient_id = self.request.query_params.get('patient_id')
+        
+        if patient_id:
+            # Filter vital signs for a specific patient
+            # Note: VitalSign uses MedicalRecord which uses PatientVaqtincha
+            try:
+                patient = PatientVaqtincha.objects.get(id=patient_id)
+                # Get all medical records for this patient
+                medical_records = MedicalRecord.objects.filter(patient=patient)
+                # Get all vital signs for these medical records
+                return VitalSign.objects.filter(
+                    medical_record__in=medical_records
+                ).select_related('medical_record__patient')
+            except PatientVaqtincha.DoesNotExist:
+                return VitalSign.objects.none()
+        elif user.user_type == 'patient' and hasattr(user, 'patient_profile'):
+            # Patient can only see their own vital signs
+            medical_records = MedicalRecord.objects.filter(patient=user.patient_profile)
+            return VitalSign.objects.filter(
+                medical_record__in=medical_records
+            ).select_related('medical_record__patient')
+        elif user.user_type == 'doctor' and hasattr(user, 'doctor_profile'):
+            # Doctor can see vital signs from their medical records
+            medical_records = MedicalRecord.objects.filter(doctor=user.doctor_profile)
+            return VitalSign.objects.filter(
+                medical_record__in=medical_records
+            ).select_related('medical_record__patient')
+        else:
+            # Super admin or other users see all vital signs
+            return VitalSign.objects.all().select_related('medical_record__patient')
 
 
 class PatientDocumentViewSet(viewsets.ModelViewSet):
