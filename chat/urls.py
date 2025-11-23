@@ -8,6 +8,7 @@ from .views import (
     send_message,
     create_or_get_chat,
     mark_messages_read,
+    analyze_medical_form,
 )
 
 from rest_framework.routers import DefaultRouter
@@ -27,6 +28,7 @@ urlpatterns = [
     path("<int:chat_id>/messages/", ChatMessagesView.as_view(), name="chat-messages"),
     path("<int:chat_id>/send/", send_message, name="send-message"),
     path("<int:chat_id>/read/", mark_messages_read, name="mark-read"),
+    path("analyze-medical-form/", analyze_medical_form, name="analyze-medical-form"),
 
     path('gpt/', include(router.urls)),
     

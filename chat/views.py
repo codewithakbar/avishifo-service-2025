@@ -306,6 +306,280 @@ def call_openai_api(messages, model="gpt-4o", max_tokens=3000):
         raise e
 
 
+@api_view(['POST', 'OPTIONS'])
+def analyze_medical_form(request):
+    """
+    Analyze medical form data using ChatGPT
+    """
+    if request.method == 'OPTIONS':
+        response = Response({})
+        return add_cors_headers(response)
+    
+    # Check authentication for POST requests
+    if not request.user.is_authenticated:
+        response = Response(
+            {"error": "Требуется авторизация", "status": "error"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+        return add_cors_headers(response)
+    
+    try:
+        form_data = request.data
+        
+        # Create a comprehensive prompt for medical form analysis
+        system_prompt = """Ты — AviShifo, опытный медицинский ИИ-ассистент. Твоя задача — проанализировать медицинскую анкету пациента и предоставить детальный анализ.
+
+Проанализируй следующие разделы:
+1. Личные данные и основная информация
+2. Обращение в клинику (жалобы, симптомы, анамнез)
+3. История жизни (вредные привычки, семейный анамнез, аллергии, перенесенные заболевания)
+4. Объективное обследование (данные врача)
+5. Результаты анализов (лабораторные данные)
+6. Инструментальные методы исследования
+
+Предоставь анализ в следующем формате:
+- Краткое резюме состояния пациента
+- Выявленные патологии и отклонения
+- Интерпретация результатов анализов
+- Рекомендации по дополнительным обследованиям (если необходимо)
+- Предварительные выводы и рекомендации
+
+Будь точным, профессиональным и используй медицинскую терминологию. Если данных недостаточно, укажи это."""
+
+        # Format the form data into a readable text
+        formatted_data = format_medical_form_data(form_data)
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Проанализируй следующую медицинскую анкету пациента:\n\n{formatted_data}"}
+        ]
+        
+        # Call OpenAI API
+        analysis = call_openai_api(messages, model="gpt-4o", max_tokens=4000)
+        
+        response = Response({
+            "analysis": analysis,
+            "status": "success"
+        })
+        return add_cors_headers(response)
+        
+    except Exception as e:
+        print(f"Error in analyze_medical_form: {e}")
+        response = Response(
+            {
+                "error": "Произошла ошибка при анализе медицинской анкеты",
+                "details": str(e),
+                "status": "error"
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        return add_cors_headers(response)
+
+
+def format_medical_form_data(form_data):
+    """Format medical form data into readable text for AI analysis"""
+    sections = []
+    
+    # 1. Личные данные
+    if any([form_data.get('fullName'), form_data.get('birthDate'), form_data.get('gender')]):
+        sections.append("=== ЛИЧНЫЕ ДАННЫЕ ===")
+        if form_data.get('fullName'):
+            sections.append(f"ФИО: {form_data['fullName']}")
+        if form_data.get('passport'):
+            sections.append(f"Паспорт: {form_data['passport']}")
+        if form_data.get('birthDate'):
+            sections.append(f"Дата рождения: {form_data['birthDate']}")
+        if form_data.get('gender'):
+            sections.append(f"Пол: {form_data['gender']}")
+        if form_data.get('maritalStatus'):
+            sections.append(f"Семейное положение: {form_data['maritalStatus']}")
+        if form_data.get('education'):
+            sections.append(f"Образование: {form_data['education']}")
+        if form_data.get('job'):
+            sections.append(f"Место работы, специальность: {form_data['job']}")
+        if form_data.get('address'):
+            sections.append(f"Адрес: {form_data['address']}")
+        sections.append("")
+    
+    # 2. Обращение в клинику
+    if any([form_data.get('admissionDate'), form_data.get('mainComplaints'), form_data.get('referralDiagnosis')]):
+        sections.append("=== ОБРАЩЕНИЕ В КЛИНИКУ ===")
+        if form_data.get('admissionDate'):
+            sections.append(f"Дата обращения: {form_data['admissionDate']}")
+        if form_data.get('referralDiagnosis'):
+            sections.append(f"Направляющий диагноз: {form_data['referralDiagnosis']}")
+        if form_data.get('mainComplaints'):
+            sections.append(f"Основные жалобы: {form_data['mainComplaints']}")
+        if form_data.get('mainComplaintsDetail'):
+            sections.append(f"Детализация жалоб: {form_data['mainComplaintsDetail']}")
+        if form_data.get('generalComplaints'):
+            sections.append(f"Общие жалобы: {form_data['generalComplaints']}")
+        if form_data.get('additionalComplaints'):
+            sections.append(f"Дополнительные жалобы: {form_data['additionalComplaints']}")
+        if form_data.get('firstSymptomsDate'):
+            sections.append(f"Дата первых симптомов: {form_data['firstSymptomsDate']}")
+        if form_data.get('firstSymptoms'):
+            sections.append(f"Первые симптомы: {form_data['firstSymptoms']}")
+        if form_data.get('triggers'):
+            sections.append(f"Провоцирующие факторы: {form_data['triggers']}")
+        if form_data.get('symptomsDynamic'):
+            sections.append(f"Динамика симптомов: {form_data['symptomsDynamic']}")
+        if form_data.get('previousDiagnosis'):
+            sections.append(f"Предыдущие диагнозы: {form_data['previousDiagnosis']}")
+        if form_data.get('currentState'):
+            sections.append(f"Текущее состояние: {form_data['currentState']}")
+        sections.append("")
+    
+    # 3. История жизни
+    if any([form_data.get('badHabits'), form_data.get('familyHistory'), form_data.get('allergies'), form_data.get('pastDiseases')]):
+        sections.append("=== АНАМНЕЗ ЖИЗНИ ===")
+        if form_data.get('badHabits'):
+            sections.append(f"Вредные привычки: {form_data['badHabits']}")
+        if form_data.get('familyHistory'):
+            sections.append(f"Семейный анамнез: {form_data['familyHistory']}")
+        if form_data.get('allergies'):
+            sections.append(f"Аллергии: {form_data['allergies']}")
+        if form_data.get('pastDiseases'):
+            sections.append(f"Перенесенные заболевания: {form_data['pastDiseases']}")
+        sections.append("")
+    
+    # 4. Объективное обследование
+    if any([form_data.get('generalExamination'), form_data.get('respiratory'), form_data.get('cardiovascular')]):
+        sections.append("=== ОБЪЕКТИВНОЕ ОБСЛЕДОВАНИЕ ===")
+        if form_data.get('generalExamination'):
+            sections.append(f"Общий осмотр: {form_data['generalExamination']}")
+        if form_data.get('headNeck'):
+            sections.append(f"Голова и шея: {form_data['headNeck']}")
+        if form_data.get('skin'):
+            sections.append(f"Кожные покровы: {form_data['skin']}")
+        if form_data.get('respiratory'):
+            sections.append(f"Дыхательная система: {form_data['respiratory']}")
+        if form_data.get('cardiovascular'):
+            sections.append(f"Сердечно-сосудистая система: {form_data['cardiovascular']}")
+        if form_data.get('abdomen'):
+            sections.append(f"Живот: {form_data['abdomen']}")
+        if form_data.get('musculoskeletal'):
+            sections.append(f"Опорно-двигательный аппарат: {form_data['musculoskeletal']}")
+        if form_data.get('lymphNodes'):
+            sections.append(f"Лимфатические узлы: {form_data['lymphNodes']}")
+        if form_data.get('abdomenPalpation'):
+            sections.append(f"Пальпация живота: {form_data['abdomenPalpation']}")
+        if form_data.get('percussion'):
+            sections.append(f"Перкуссия: {form_data['percussion']}")
+        if form_data.get('lungAuscultation'):
+            sections.append(f"Аускультация легких: {form_data['lungAuscultation']}")
+        if form_data.get('heartAuscultation'):
+            sections.append(f"Аускультация сердца: {form_data['heartAuscultation']}")
+        if form_data.get('abdomenAuscultation'):
+            sections.append(f"Аускультация живота: {form_data['abdomenAuscultation']}")
+        sections.append("")
+    
+    # 5. Результаты анализов
+    test_sections = []
+    
+    # ОАК
+    oak_fields = ['oak_wbc', 'oak_rbc', 'oak_hgb', 'oak_hct', 'oak_mcv', 'oak_mch', 'oak_mchc', 
+                  'oak_rdw_cv', 'oak_rdw_sd', 'oak_plt', 'oak_pct', 'oak_mpv', 'oak_pdw']
+    if any([form_data.get(field) for field in oak_fields]):
+        test_sections.append("ОАК (Общий анализ крови):")
+        for field in oak_fields:
+            if form_data.get(field):
+                field_name = field.replace('oak_', '').upper()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('oak_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['oak_conclusion']}")
+        test_sections.append("")
+    
+    # ОАМ
+    oam_fields = ['oam_color', 'oam_transparency', 'oam_sediment', 'oam_ph_reaction', 'oam_bilirubin',
+                  'oam_urobilinogen', 'oam_ketones', 'oam_ascorbic_acid', 'oam_glucose', 'oam_protein',
+                  'oam_blood', 'oam_ph', 'oam_nitrites', 'oam_leukocytes_digital', 'oam_specific_gravity',
+                  'oam_epithelium', 'oam_leukocytes_microscopy', 'oam_erythrocytes_unchanged',
+                  'oam_erythrocytes_changed', 'oam_bacteria', 'oam_mucus']
+    if any([form_data.get(field) for field in oam_fields]):
+        test_sections.append("ОАМ (Общий анализ мочи):")
+        for field in oam_fields:
+            if form_data.get(field):
+                field_name = field.replace('oam_', '').replace('_', ' ').title()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('oam_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['oam_conclusion']}")
+        test_sections.append("")
+    
+    # Биохимия
+    bio_fields = ['bio_bilt', 'bio_bild', 'bio_ast', 'bio_alt', 'bio_urea', 'bio_crea', 'bio_tp',
+                  'bio_alb', 'bio_alp', 'bio_amy', 'bio_glue', 'bio_ldh', 'bio_glob', 'bio_alb_glob', 'bio_ritis']
+    if any([form_data.get(field) for field in bio_fields]):
+        test_sections.append("Биохимический анализ крови:")
+        for field in bio_fields:
+            if form_data.get(field):
+                field_name = field.replace('bio_', '').upper()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('bio_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['bio_conclusion']}")
+        test_sections.append("")
+    
+    # Иммунология
+    imm_fields = ['imm_cd3', 'imm_cd3_hla_dr', 'imm_cd4_cd8_minus', 'imm_cd4_minus_cd8', 'imm_cd4_cd8_ratio',
+                  'imm_cd3_minus_cd8', 'imm_cd4_minus_cd8_alt', 'imm_cd19', 'imm_cd16_cd56', 'imm_cd3_cd16_cd56',
+                  'imm_cd3_cd25', 'imm_cd8_hla_dr', 'imm_cd19_cd27_igd', 'imm_leukocytes', 'imm_lymphocytes_percent',
+                  'imm_igg', 'imm_igm', 'imm_iga']
+    if any([form_data.get(field) for field in imm_fields]):
+        test_sections.append("Иммунологические исследования:")
+        for field in imm_fields:
+            if form_data.get(field):
+                field_name = field.replace('imm_', '').upper()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('imm_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['imm_conclusion']}")
+        test_sections.append("")
+    
+    # Серология
+    sero_fields = ['sero_early_igg', 'sero_early_igm', 'sero_acute_igg', 'sero_acute_igm',
+                   'sero_immunity_igg', 'sero_immunity_igm', 'sero_risk_igg', 'sero_risk_igm']
+    if any([form_data.get(field) for field in sero_fields]):
+        test_sections.append("Серологические исследования:")
+        for field in sero_fields:
+            if form_data.get(field):
+                field_name = field.replace('sero_', '').replace('_', ' ').title()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('sero_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['sero_conclusion']}")
+        test_sections.append("")
+    
+    # ПЦР
+    pcr_fields = ['pcr_chlamydia', 'pcr_ureaplasma', 'pcr_mycoplasma_hominis', 'pcr_mycoplasma_genitalium',
+                  'pcr_herpes', 'pcr_cmv', 'pcr_gonorrhea', 'pcr_trichomonas', 'pcr_gardnerella',
+                  'pcr_candida', 'pcr_hpv_high', 'pcr_hpv_low', 'pcr_streptococcus']
+    if any([form_data.get(field) for field in pcr_fields]):
+        test_sections.append("ПЦР исследования:")
+        for field in pcr_fields:
+            if form_data.get(field):
+                field_name = field.replace('pcr_', '').replace('_', ' ').title()
+                test_sections.append(f"  {field_name}: {form_data[field]}")
+        if form_data.get('pcr_conclusion'):
+            test_sections.append(f"  Заключение: {form_data['pcr_conclusion']}")
+        test_sections.append("")
+    
+    if test_sections:
+        sections.append("=== РЕЗУЛЬТАТЫ АНАЛИЗОВ ===")
+        sections.extend(test_sections)
+    
+    # 6. Инструментальные методы исследования
+    if form_data.get('instrumental_research') and len(form_data.get('instrumental_research', [])) > 0:
+        sections.append("=== ИНСТРУМЕНТАЛЬНЫЕ МЕТОДЫ ИССЛЕДОВАНИЯ ===")
+        for idx, research in enumerate(form_data['instrumental_research'], 1):
+            if isinstance(research, dict):
+                research_type = research.get('type', 'Не указано')
+                research_date = research.get('date', 'Не указано')
+                research_description = research.get('description', 'Не указано')
+                sections.append(f"{idx}. Тип: {research_type}, Дата: {research_date}")
+                sections.append(f"   Описание: {research_description}")
+        sections.append("")
+    
+    return "\n".join(sections) if sections else "Данные не предоставлены"
+
+
 class ChatSessionViewSet(viewsets.ModelViewSet):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
