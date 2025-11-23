@@ -514,32 +514,32 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
         allow_empty=True
     )
     experience = serializers.CharField(required=False, allow_blank=True)
-    education = serializers.CharField(required=False, allow_blank=True)
-    bio = serializers.CharField(required=False, allow_blank=True)
+    education = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    bio = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     languages = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         allow_empty=True
     )
-    certifications = serializers.CharField(required=False, allow_blank=True)
+    certifications = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     
     # Personal fields
     date_of_birth = serializers.DateField(required=False, allow_null=True)
-    gender = serializers.CharField(required=False, allow_blank=True)
-    address = serializers.CharField(required=False, allow_blank=True)
-    country = serializers.CharField(required=False, allow_blank=True)
-    region = serializers.CharField(required=False, allow_blank=True)
-    district = serializers.CharField(required=False, allow_blank=True)
+    gender = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    country = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    region = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    district = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     
     # Contact fields
-    emergency_contact = serializers.CharField(required=False, allow_blank=True)
-    medical_license = serializers.CharField(required=False, allow_blank=True)
-    insurance = serializers.CharField(required=False, allow_blank=True)
+    emergency_contact = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    medical_license = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    insurance = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     
     # Schedule fields
-    working_hours = serializers.CharField(required=False, allow_blank=True)
-    consultation_fee = serializers.CharField(required=False, allow_blank=True)
-    availability = serializers.CharField(required=False, allow_blank=True)
+    working_hours = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    consultation_fee = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    availability = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     
     class Meta:
         model = Doctor

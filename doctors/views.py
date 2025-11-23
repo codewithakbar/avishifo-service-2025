@@ -1,6 +1,11 @@
 from django.db.models import Count, Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.core.files.uploadedfile import UploadedFile
+from django.core.files.base import ContentFile
+import base64
+import re
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse
@@ -751,6 +756,7 @@ class DoctorProfilePageView(APIView):
     Handles GET for displaying profile and PATCH for updating profile
     """
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
         """Get complete doctor profile for the profile page"""
@@ -779,10 +785,95 @@ class DoctorProfilePageView(APIView):
         """Update doctor profile from the profile page"""
         try:
             doctor = Doctor.objects.get(user=request.user)
-            serializer = DoctorProfileUpdateSerializer(doctor, data=request.data, partial=True)
+
+            # Work on a mutable copy of incoming data
+            data = request.data.copy()
+
+            # Handle profile_picture separately (support file or list of files)
+            profile_picture_file = None
+            # Prefer uploaded files from request.FILES
+            for key in ['profile_picture', 'profile_picture[]', 'file', 'avatar', 'image']:
+                files = request.FILES.getlist(key)
+                if files:
+                    profile_picture_file = files[0]
+                    break
+            # Fallback: value present in data (might be list/str); sanitize
+            if profile_picture_file is None and 'profile_picture' in data:
+                raw_val = data.get('profile_picture')
+                if isinstance(raw_val, list) and raw_val:
+                    first_val = raw_val[0]
+                    if hasattr(first_val, 'read') and hasattr(first_val, 'name'):
+                        profile_picture_file = first_val
+                elif hasattr(raw_val, 'read') and hasattr(raw_val, 'name'):
+                    profile_picture_file = raw_val
+            # Always remove from serializer payload to avoid ImageField trying to parse lists/strings
+            for k in ['profile_picture', 'profile_picture[]']:
+                if k in data:
+                    try:
+                        del data[k]
+                    except Exception:
+                        pass
+
+            # Coerce specialization from str -> list[str] if needed
+            if 'specialization' in data and isinstance(data.get('specialization'), str):
+                data['specialization'] = [data.get('specialization')]
+
+            # Convert nulls to empty strings for string fields that allow blanks
+            nullable_string_fields = [
+                'address', 'country', 'region', 'district',
+                'emergency_contact', 'medical_license', 'insurance',
+                'availability', 'education', 'bio', 'certifications',
+                'working_hours', 'consultation_fee', 'gender'
+            ]
+            for field in nullable_string_fields:
+                if field in data and data.get(field) is None:
+                    data[field] = ''
+
+            serializer = DoctorProfileUpdateSerializer(doctor, data=data, partial=True)
             
             if serializer.is_valid():
                 updated_doctor = serializer.save()
+
+                # Save profile picture after the serializer succeeds
+                if profile_picture_file is not None:
+                    user = updated_doctor.user
+
+                    # If we somehow got a list, use the first valid file-like
+                    if isinstance(profile_picture_file, list):
+                        profile_picture_file = next(
+                            (f for f in profile_picture_file if hasattr(f, "read") and hasattr(f, "name")),
+                            None
+                        )
+
+                    # Uploaded file from multipart
+                    if isinstance(profile_picture_file, UploadedFile):
+                        user.profile_picture = profile_picture_file
+                        user.save()
+                    # Data URL / base64 string support
+                    elif isinstance(profile_picture_file, str) and profile_picture_file.startswith("data:image"):
+                        try:
+                            # data:image/png;base64,XXXXX
+                            match = re.match(r"data:(image/[^;]+);base64,(.+)", profile_picture_file)
+                            if not match:
+                                raise ValueError("Invalid data URL")
+                            mime, b64data = match.groups()
+                            ext = mime.split("/")[-1]
+                            decoded = base64.b64decode(b64data)
+                            content = ContentFile(decoded, name=f"profile.{ext}")
+                            user.profile_picture = content
+                            user.save()
+                        except Exception:
+                            return Response({
+                                "success": False,
+                                "message": "Validation error",
+                                "errors": {"profile_picture": ["Invalid base64 image"]}
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        return Response({
+                            "success": False,
+                            "message": "Validation error",
+                            "errors": {"profile_picture": ["Invalid file upload"]}
+                        }, status=status.HTTP_400_BAD_REQUEST)
                 
                 # Return updated profile
                 updated_serializer = DoctorProfilePageSerializer(updated_doctor)
