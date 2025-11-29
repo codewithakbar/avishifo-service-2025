@@ -324,10 +324,13 @@ def analyze_medical_form(request):
         return add_cors_headers(response)
     
     try:
-        form_data = request.data
+        form_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        language = form_data.pop('language', 'ru')  # Default to Russian if not provided
         
-        # Create a comprehensive prompt for medical form analysis
-        system_prompt = """Ты — AviShifo, опытный медицинский ИИ-ассистент. Твоя задача — проанализировать медицинскую анкету пациента и предоставить детальный анализ.
+        # Create language-specific prompts
+        language_prompts = {
+            'ru': {
+                'system': """Ты — AviShifo, опытный медицинский ИИ-ассистент. Твоя задача — проанализировать медицинскую анкету пациента и предоставить детальный анализ.
 
 Проанализируй следующие разделы:
 1. Личные данные и основная информация
@@ -344,14 +347,62 @@ def analyze_medical_form(request):
 - Рекомендации по дополнительным обследованиям (если необходимо)
 - Предварительные выводы и рекомендации
 
-Будь точным, профессиональным и используй медицинскую терминологию. Если данных недостаточно, укажи это."""
+Будь точным, профессиональным и используй медицинскую терминологию. Если данных недостаточно, укажи это. Отвечай ТОЛЬКО на русском языке.""",
+                'user': "Проанализируй следующую медицинскую анкету пациента:\n\n{formatted_data}"
+            },
+            'uz': {
+                'system': """Siz — AviShifo, tajribali tibbiy AI yordamchisisiz. Sizning vazifangiz — bemorning tibbiy anketasini tahlil qilish va batafsil tahlil berish.
 
+Quyidagi bo'limlarni tahlil qiling:
+1. Shaxsiy ma'lumotlar va asosiy ma'lumotlar
+2. Klinikaga murojaat (shikoyatlar, belgilar, anamnez)
+3. Hayot tarixi (yomon odatlar, oilaviy anamnez, allergiyalar, o'tkazilgan kasalliklar)
+4. Ob'ektiv tekshiruv (shifokor ma'lumotlari)
+5. Tahlil natijalari (laboratoriya ma'lumotlari)
+6. Instrumental tekshiruv usullari
+
+Quyidagi formatda tahlil bering:
+- Bemorni holatining qisqa xulosa
+- Aniqlangan patologiyalar va og'ishlar
+- Tahlil natijalarining talqini
+- Qo'shimcha tekshiruvlar bo'yicha tavsiyalar (agar kerak bo'lsa)
+- Dastlabki xulosalar va tavsiyalar
+
+Aniq, professional bo'ling va tibbiy terminologiyadan foydalaning. Agar ma'lumotlar yetarli bo'lmasa, buni ko'rsating. Faqat O'ZBEK tilida javob bering.""",
+                'user': "Quyidagi bemorning tibbiy anketasini tahlil qiling:\n\n{formatted_data}"
+            },
+            'en': {
+                'system': """You are AviShifo, an experienced medical AI assistant. Your task is to analyze a patient's medical questionnaire and provide a detailed analysis.
+
+Analyze the following sections:
+1. Personal data and basic information
+2. Clinic visit (complaints, symptoms, anamnesis)
+3. Life history (bad habits, family history, allergies, past diseases)
+4. Physical examination (doctor's data)
+5. Test results (laboratory data)
+6. Instrumental research methods
+
+Provide analysis in the following format:
+- Brief summary of patient's condition
+- Identified pathologies and deviations
+- Interpretation of test results
+- Recommendations for additional examinations (if necessary)
+- Preliminary conclusions and recommendations
+
+Be accurate, professional and use medical terminology. If data is insufficient, indicate this. Answer ONLY in English.""",
+                'user': "Analyze the following patient's medical questionnaire:\n\n{formatted_data}"
+            }
+        }
+        
+        # Get prompts for selected language, default to Russian
+        prompts = language_prompts.get(language, language_prompts['ru'])
+        
         # Format the form data into a readable text
         formatted_data = format_medical_form_data(form_data)
         
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Проанализируй следующую медицинскую анкету пациента:\n\n{formatted_data}"}
+            {"role": "system", "content": prompts['system']},
+            {"role": "user", "content": prompts['user'].format(formatted_data=formatted_data)}
         ]
         
         # Call OpenAI API

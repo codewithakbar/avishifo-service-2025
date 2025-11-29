@@ -54,3 +54,6 @@ powershell -ExecutionPolicy Bypass -File venv\Scripts\Activate.ps1
 - `Unrestricted` - разрешает все, но показывает предупреждения
 - `RemoteSigned` - рекомендуется для разработки (текущая настройка)
 
+
+
+
