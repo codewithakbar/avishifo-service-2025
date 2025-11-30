@@ -3,3 +3,5 @@ REM Alternative way to activate virtual environment without PowerShell execution
 call venv\Scripts\activate.bat
 cmd /k
 
+
+

@@ -80,6 +80,19 @@ class KasallikTarixiAPIView(APIView):
             return Response({"message": "Ma'lumotlar qisman yangilandi."})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request, pk=None):
+        if pk is None:
+            return Response(
+                {"error": "ID обязателен для удаления"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        instance.delete()
+        return Response(
+            {"message": "Ma'lumotlar o'chirildi."}, 
+            status=status.HTTP_204_NO_CONTENT
+        )
+
 
 class PatientListAPIView(ListAPIView):
     serializer_class = PatientVaqtinchaSerializer
