@@ -193,6 +193,25 @@ class KasallikTarixi(models.Model):
         upload_to="kasallik_hujjatlari/doktor_tavsiyalari/", null=True, blank=True
     )
 
+    # Qo'shimcha ma'lumotlar (Life History)
+    zararli_odatlar = models.TextField("Zararli odatlar", blank=True)
+    oilaviy_anamnez = models.TextField("Oilaviy anamnez", blank=True)
+    allergiyalar = models.TextField("Allergiyalar", blank=True)
+    otkazilgan_kasalliklar = models.TextField("O'tkazilgan kasalliklar", blank=True)
+
+    # Fizikal ko'rik (Examination)
+    umumiy_korik = models.TextField("Umumiy ko'rik", blank=True)
+    bosh_boyin = models.TextField("Bosh va bo'yin", blank=True)
+    teri = models.TextField("Teri holati", blank=True)
+    limfa_tugunlari = models.TextField("Limfa tugunlari", blank=True)
+    qorin_palpatsiyasi = models.TextField("Qorin palpatsiyasi", blank=True)
+    perkussiya = models.TextField("Perkussiya", blank=True)
+    opka_auskultatsiyasi = models.TextField("O'pka auskultatsiyasi", blank=True)
+    yurak_auskultatsiyasi = models.TextField("Yurak auskultatsiyasi", blank=True)
+    qorin_auskultatsiyasi = models.TextField("Qorin auskultatsiyasi", blank=True)
+
+    ai_tahlil = models.TextField("AI tahlili va tashxisi", blank=True)
+
     yuborilgan_vaqt = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
