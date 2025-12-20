@@ -41,15 +41,25 @@ class KasallikTarixiAPIView(APIView):
 
     def get(self, request, pk=None):
         if pk is not None:
-            instance = get_object_or_404(KasallikTarixi, pk=pk)
+            # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini ko'rsatish
+            instance = get_object_or_404(
+                KasallikTarixi, 
+                pk=pk,
+                patient__created_by=request.user
+            )
             serializer = KasallikTarixiSerializer(instance)
             return Response(serializer.data)
 
         patient_id = request.query_params.get("patient_id")
         if patient_id:
-            queryset = KasallikTarixi.objects.filter(patient_id=patient_id).order_by('-yuborilgan_vaqt')
+            # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini ko'rsatish
+            queryset = KasallikTarixi.objects.filter(
+                patient_id=patient_id,
+                patient__created_by=request.user
+            ).order_by('-yuborilgan_vaqt')
         else:
-            queryset = KasallikTarixi.objects.all().order_by('-yuborilgan_vaqt')
+            # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini ko'rsatish
+            queryset = KasallikTarixi.objects.filter(patient__created_by=request.user).order_by('-yuborilgan_vaqt')
 
         serializer = KasallikTarixiSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -65,7 +75,12 @@ class KasallikTarixiAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk=None):
-        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini yangilash
+        instance = get_object_or_404(
+            KasallikTarixi, 
+            pk=pk,
+            patient__created_by=request.user
+        )
         serializer = KasallikTarixiSerializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -73,7 +88,12 @@ class KasallikTarixiAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk=None):
-        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini yangilash
+        instance = get_object_or_404(
+            KasallikTarixi, 
+            pk=pk,
+            patient__created_by=request.user
+        )
         serializer = KasallikTarixiSerializer(instance, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -86,7 +106,12 @@ class KasallikTarixiAPIView(APIView):
                 {"error": "ID обязателен для удаления"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
-        instance = get_object_or_404(KasallikTarixi, pk=pk)
+        # Faqat joriy foydalanuvchi yaratgan bemorlarning kasallik tarixini o'chirish
+        instance = get_object_or_404(
+            KasallikTarixi, 
+            pk=pk,
+            patient__created_by=request.user
+        )
         instance.delete()
         return Response(
             {"message": "Ma'lumotlar o'chirildi."}, 
