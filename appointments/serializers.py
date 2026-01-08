@@ -6,10 +6,14 @@ from accounts.serializers import UserSerializer
 
 class AppointmentListSerializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source='patient.full_name', read_only=True)
-    patient_age = serializers.ReadOnlyField()
+    patient_age = serializers.SerializerMethodField()
     patient_phone = serializers.CharField(source='patient.phone_number', read_only=True)
     patient_email = serializers.CharField(source='patient.email', read_only=True)
     doctor_name = serializers.CharField(source='doctor.full_name', read_only=True)
+    
+    def get_patient_age(self, obj):
+        """Calculate patient age from date_of_birth"""
+        return obj.patient_age
     
     class Meta:
         model = Appointment
@@ -23,7 +27,11 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 class AppointmentDetailSerializer(serializers.ModelSerializer):
     patient = UserSerializer(read_only=True)
     doctor = UserSerializer(read_only=True)
-    patient_age = serializers.ReadOnlyField()
+    patient_age = serializers.SerializerMethodField()
+    
+    def get_patient_age(self, obj):
+        """Calculate patient age from date_of_birth"""
+        return obj.patient_age
     
     class Meta:
         model = Appointment

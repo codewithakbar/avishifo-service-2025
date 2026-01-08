@@ -2,7 +2,14 @@ from rest_framework import serializers
 from accounts.models import User
 from accounts.serializers import UserSerializer
 from hospitals.serializers import HospitalSerializer
-from .models import Doctor, DoctorSchedule, Hospital
+from .models import Doctor, DoctorSchedule, Hospital, Specialization
+
+
+class SpecializationSerializer(serializers.ModelSerializer):
+    """Serializer for Specialization model"""
+    class Meta:
+        model = Specialization
+        fields = ['id', 'value', 'label', 'description', 'is_active']
 
 
 class DoctorScheduleSerializer(serializers.ModelSerializer):
@@ -15,6 +22,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     hospital = HospitalSerializer(read_only=True)
     schedules = DoctorScheduleSerializer(many=True, read_only=True)
+    specializations = SpecializationSerializer(many=True, read_only=True)  # Many-to-many field
 
     # Human-readable labels for choices
     specialty_label = serializers.SerializerMethodField()
@@ -33,6 +41,7 @@ class DoctorSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = "__all__"
         read_only_fields = (
+            "uuid",
             "doctor_id",
             "rating",
             "created_at",
@@ -277,6 +286,7 @@ class DoctorDetailSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     hospital = HospitalSerializer(read_only=True)
     schedules = DoctorScheduleSerializer(many=True, read_only=True)
+    specializations = SpecializationSerializer(many=True, read_only=True)  # Many-to-many field
     
     # Computed fields for UI
     specialty_label = serializers.SerializerMethodField()
@@ -293,6 +303,14 @@ class DoctorDetailSerializer(serializers.ModelSerializer):
     
     def get_specialty_label(self, obj):
         return obj.get_specialty_display() if obj.specialty else "Не указано"
+    
+    def get_specializations(self, obj):
+        """Return specializations as list of objects with value and label from ManyToMany"""
+        specializations = obj.specializations.all()
+        return [
+            {"value": spec.value, "label": spec.label}
+            for spec in specializations
+        ]
     
     def get_category_label(self, obj):
         return obj.get_category_display()
@@ -454,9 +472,9 @@ class DoctorProfilePageSerializer(serializers.ModelSerializer):
         return self.get_languages(obj)
     
     def get_specializations(self, obj):
-        if obj.specializations:
-            return obj.specializations
-        return []
+        """Return specializations as list of strings (labels) from ManyToMany"""
+        specializations = obj.specializations.all()
+        return [spec.label for spec in specializations]
     
     def get_awards(self, obj):
         if obj.awards:
@@ -508,10 +526,11 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(required=False, allow_null=True)
     
     # Professional fields
-    specialization = serializers.ListField(
+    specializations = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        allow_empty=True
+        allow_empty=True,
+        help_text="List of specialization values (e.g., ['cardiologist', 'neurologist'])"
     )
     experience = serializers.CharField(required=False, allow_blank=True)
     education = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -545,7 +564,7 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = [
             'full_name', 'email', 'phone', 'profile_picture',
-            'specialization', 'experience', 'education', 'bio', 'languages', 'certifications',
+            'specializations', 'experience', 'education', 'bio', 'languages', 'certifications',
             'date_of_birth', 'gender', 'address', 'country', 'region', 'district',
             'emergency_contact', 'medical_license', 'insurance',
             'working_hours', 'consultation_fee', 'availability'
@@ -579,14 +598,33 @@ class DoctorProfileUpdateSerializer(serializers.ModelSerializer):
             instance.user.profile_picture = validated_data.pop('profile_picture')
             instance.user.save()
         
-        # Handle specialization (convert list to string for storage)
-        if 'specialization' in validated_data:
-            specializations = validated_data.pop('specialization')
+        # Handle specializations (list of specialization values) - ManyToMany
+        if 'specializations' in validated_data:
+            specializations = validated_data.pop('specializations')
             if isinstance(specializations, list):
-                instance.specializations = specializations
+                # Get or create Specialization objects by value
+                spec_objects = []
+                for spec_value in specializations:
+                    try:
+                        # Try to find by value
+                        spec_obj = Specialization.objects.get(value=spec_value, is_active=True)
+                        spec_objects.append(spec_obj)
+                    except Specialization.DoesNotExist:
+                        # If not found, try to create from SPECIALTIES choices
+                        label_map = dict(Doctor.SPECIALTIES)
+                        if spec_value in label_map:
+                            spec_obj, created = Specialization.objects.get_or_create(
+                                value=spec_value,
+                                defaults={'label': label_map[spec_value], 'is_active': True}
+                            )
+                            spec_objects.append(spec_obj)
+                
+                # Set many-to-many relationship
+                instance.specializations.set(spec_objects)
+                
                 # Also update the main specialty if there's at least one
-                if specializations:
-                    instance.specialty = specializations[0]
+                if spec_objects:
+                    instance.specialty = spec_objects[0].value
         
         # Handle languages (convert list to string for storage)
         if 'languages' in validated_data:

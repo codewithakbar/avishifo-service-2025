@@ -167,22 +167,23 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# CORS Configuration
+# CORS Configuration - Allow all origins
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Specific CORS settings for production
-CORS_ALLOWED_ORIGINS = [
-    "https://dashboard.avishifo.uz",
-    "https://new.avishifo.uz",
-    "https://avishifo.uz",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+# Note: When CORS_ALLOW_ALL_ORIGINS = True, the following settings are ignored
+# but kept for reference. The CustomCorsMiddleware handles all origins.
+# CORS_ALLOWED_ORIGINS = [
+#     "https://dashboard.avishifo.uz",
+#     "https://new.avishifo.uz",
+#     "https://avishifo.uz",
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+# ]
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.avishifo\.uz$",
-]
+# CORS_ALLOWED_ORIGIN_REGEXES = [
+#     r"^https://.*\.avishifo\.uz$",
+# ]
 
 CORS_ALLOW_METHODS = [
     "DELETE",

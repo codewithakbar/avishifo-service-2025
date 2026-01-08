@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User
+import uuid
 
 # from hospitals.models import Hospital # Agar Hospital modeli shu faylda bo'lmasa, uni import qilish kerak.
 # Agar Hospital modeli yuqorida aniqlangan bo'lsa, bu importga hojat yo'q.
@@ -14,6 +15,24 @@ class Hospital(models.Model):
         return self.name
 
 
+class Specialization(models.Model):
+    """Model for doctor specializations - many-to-many relationship"""
+    value = models.CharField(max_length=50, unique=True, help_text="Internal value (e.g., 'cardiologist')")
+    label = models.CharField(max_length=255, help_text="Display label (e.g., 'Кардиолог')")
+    description = models.TextField(blank=True, null=True, help_text="Optional description")
+    is_active = models.BooleanField(default=True, help_text="Whether this specialization is active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['label']
+        verbose_name = "Specialization"
+        verbose_name_plural = "Specializations"
+    
+    def __str__(self):
+        return self.label
+
+
 class Doctor(models.Model):
     GENDER_CHOICES = (
         ('male', 'Мужской'),
@@ -23,6 +42,74 @@ class Doctor(models.Model):
     )
     
     SPECIALTIES = (
+        ("general_practitioner", "Врач общей практики (терапевт)"),
+        ("pediatrician", "Педиатр (детский врач)"),
+        ("family_doctor", "Семейный врач"),
+        ("cardiologist", "Кардиолог"),
+        ("vascular_surgeon", "Сосудистый хирург"),
+        ("hematologist", "Гематолог"),
+        ("pulmonologist", "Пульмонолог (лёгкие)"),
+        ("phthisiologist", "Фтизиатр (туберкулёз)"),
+        ("gastroenterologist", "Гастроэнтеролог"),
+        ("proctologist", "Проктолог (колопроктолог)"),
+        ("hepatologist", "Гепатолог (печень)"),
+        ("urologist", "Уролог"),
+        ("andrologist", "Андролог (мужское здоровье)"),
+        ("nephrologist", "Нефролог (почки)"),
+        ("gynecologist", "Гинеколог"),
+        ("reproductologist", "Репродуктолог (ЭКО, бесплодие)"),
+        ("obstetrician_gynecologist", "Акушер-гинеколог"),
+        ("endocrinologist", "Эндокринолог (щитовидка, диабет)"),
+        ("neurologist", "Невролог"),
+        ("neurosurgeon", "Нейрохирург"),
+        ("psychiatrist", "Психиатр"),
+        ("psychotherapist", "Психотерапевт"),
+        ("narcologist", "Нарколог"),
+        ("pediatric_cardiologist", "Детский кардиолог"),
+        ("pediatric_neurologist", "Детский невролог"),
+        ("pediatric_endocrinologist", "Детский эндокринолог"),
+        ("pediatric_surgeon", "Детский хирург"),
+        ("neonatologist", "Неонатолог"),
+        ("general_surgeon", "Хирург общей практики"),
+        ("traumatologist_orthopedist", "Травматолог-ортопед"),
+        ("oncosurgeon", "Онкохирург"),
+        ("plastic_surgeon", "Пластический хирург"),
+        ("maxillofacial_surgeon", "Челюстно-лицевой хирург"),
+        ("thoracic_surgeon", "Торакальный хирург"),
+        ("cardiosurgeon", "Кардиохирург"),
+        ("ophthalmologist", "Офтальмолог (глазной врач)"),
+        ("otolaryngologist", "Отоларинголог (ЛОР)"),
+        ("audiologist", "Сурдолог (слух)"),
+        ("dermatologist", "Дерматолог"),
+        ("cosmetologist", "Косметолог"),
+        ("venereologist", "Венеролог"),
+        ("oncologist", "Онколог"),
+        ("pediatric_oncologist", "Детский онколог"),
+        ("radiologist", "Радиолог (рентген, МРТ, КТ)"),
+        ("ultrasound_specialist", "УЗИ-диагност"),
+        ("laboratory_technician", "Лаборант (клиническая лаборатория)"),
+        ("pathologist", "Патологоанатом"),
+        ("geneticist", "Генетик"),
+        ("physiotherapist", "Физиотерапевт"),
+        ("rehabilitologist", "Реабилитолог"),
+        ("exercise_therapist", "ЛФК-врач"),
+        ("palliative_doctor", "Паллиативный врач"),
+        ("anesthesiologist_resuscitator", "Анестезиолог-реаниматолог"),
+        ("emergency_doctor", "Врач скорой помощи"),
+        ("toxicologist", "Токсиколог"),
+        ("epidemiologist", "Врач-эпидемиолог"),
+        ("hygienist", "Врач-гигиенист"),
+        ("preventive_medicine_doctor", "Врач по медико-профилактическому делу"),
+        ("dental_therapist", "Стоматолог-терапевт"),
+        ("dental_surgeon", "Стоматолог-хирург"),
+        ("dental_orthopedist", "Стоматолог-ортопед"),
+        ("orthodontist", "Ортодонт"),
+        ("pediatric_dentist", "Детский стоматолог"),
+        ("implantologist", "Имплантолог"),
+        ("sports_doctor", "Спортивный врач"),
+        ("forensic_medical_expert", "Судебно-медицинский эксперт"),
+        ("disaster_medicine_doctor", "Врач медицины катастроф"),
+        # Legacy specialties for backward compatibility
         ("internal_medicine", "Терапия (внутренние болезни)"),
         ("cardiology", "Кардиология"),
         ("endocrinology", "Эндокринология"),
@@ -49,7 +136,6 @@ class Doctor(models.Model):
         ("psychiatry", "Психиатрия"),
         ("dermatovenereology", "Дерматовенерология"),
         ("ophthalmology", "Офтальмология"),
-        ("otolaryngology", "Отоларингология (ЛОР)"),
         ("dentistry", "Стоматология"),
         ("radiology", "Радиология"),
         ("ultrasound_diagnostics", "Ультразвуковая диагностика"),
@@ -85,6 +171,12 @@ class Doctor(models.Model):
 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="doctor_profile"
+    )
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text="Unique identifier for public-facing URLs"
     )
     doctor_id = models.CharField(max_length=20, unique=True)
     specialty = models.CharField(max_length=50, choices=SPECIALTIES, blank=True, null=True)
@@ -157,10 +249,18 @@ class Doctor(models.Model):
         null=True,
         help_text="A short biography or professional statement for the profile page."
     )
-    specializations = models.JSONField(
+    # Many-to-many relationship for specializations
+    specializations = models.ManyToManyField(
+        Specialization,
+        related_name='doctors',
+        blank=True,
+        help_text="Doctor specializations"
+    )
+    # Legacy field for backward compatibility (will be deprecated)
+    specializations_legacy = models.JSONField(
         default=list,
         blank=True,
-        help_text="A list of more specific specializations, e.g., ['Echocardiography', 'Interventional Cardiology']"
+        help_text="Legacy field - use specializations ManyToMany instead"
     )
     
     # 8️⃣ Additional profile fields from UI

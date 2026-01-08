@@ -21,20 +21,11 @@ class CustomCorsMiddleware(MiddlewareMixin):
         return response
     
     def add_cors_headers(self, response, request):
-        """Add CORS headers to response"""
+        """Add CORS headers to response - allows all origins"""
         origin = request.META.get('HTTP_ORIGIN')
         
-        # Allow specific origins
-        allowed_origins = [
-            'https://dashboard.avishifo.uz',
-            'https://new.avishifo.uz',
-            'https://avishifo.uz',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-        ]
-        
-        # Check if origin is allowed or matches pattern
-        if origin and (origin in allowed_origins or origin.endswith('.avishifo.uz')):
+        # Allow all origins - echo back the origin if provided, otherwise use *
+        if origin:
             response['Access-Control-Allow-Origin'] = origin
         else:
             response['Access-Control-Allow-Origin'] = '*'

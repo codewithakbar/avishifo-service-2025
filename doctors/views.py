@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Doctor, DoctorSchedule
+from .models import Doctor, DoctorSchedule, Specialization
 from .serializers import (
     DoctorProfileSerializer,
     DoctorSerializer,
@@ -241,7 +241,7 @@ class DoctorListView(generics.ListAPIView):
     ordering = ["-rating"]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().prefetch_related('specializations')
         search_query = self.request.query_params.get("search", None)
         if search_query:
             # Extend search to include specialty label if possible, or other text fields
@@ -256,14 +256,36 @@ class DoctorListView(generics.ListAPIView):
                 | Q(
                     languages_spoken__icontains=search_query
                 )  # Searches within JSONField as text
-            )
+                | Q(specializations__label__icontains=search_query)  # Search in specializations
+            ).distinct()
         return queryset
 
 
 class DoctorDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Doctor.objects.all()
+    queryset = Doctor.objects.all().prefetch_related('specializations')
     serializer_class = DoctorDetailSerializer  # Changed to DoctorDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'uuid'
+    lookup_url_kwarg = 'pk'
+
+    def get_object(self):
+        """
+        Override to support both UUID and integer ID lookups for backward compatibility
+        """
+        pk = self.kwargs.get(self.lookup_url_kwarg)
+        
+        # Try UUID first (for new URLs)
+        try:
+            import uuid as uuid_module
+            uuid_obj = uuid_module.UUID(str(pk))
+            return Doctor.objects.get(uuid=uuid_obj)
+        except (ValueError, Doctor.DoesNotExist, TypeError):
+            # Fallback to integer ID for backward compatibility
+            try:
+                return Doctor.objects.get(pk=int(pk))
+            except (ValueError, Doctor.DoesNotExist):
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Doctor not found")
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
@@ -304,7 +326,14 @@ class DoctorCreateView(generics.CreateAPIView):
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
 def doctor_dashboard_stats(request, pk):
-    doctor = get_object_or_404(Doctor, pk=pk)
+    # Support both UUID and integer ID lookups
+    try:
+        import uuid as uuid_module
+        uuid_obj = uuid_module.UUID(str(pk))
+        doctor = get_object_or_404(Doctor, uuid=uuid_obj)
+    except (ValueError, TypeError):
+        # Fallback to integer ID for backward compatibility
+        doctor = get_object_or_404(Doctor, pk=int(pk))
 
     # Check permissions
     user = request.user
@@ -346,7 +375,14 @@ def doctor_dashboard_stats(request, pk):
 @api_view(["GET", "POST"])
 @permission_classes([permissions.IsAuthenticated])
 def doctor_schedule(request, pk):
-    doctor = get_object_or_404(Doctor, pk=pk)
+    # Support both UUID and integer ID lookups
+    try:
+        import uuid as uuid_module
+        uuid_obj = uuid_module.UUID(str(pk))
+        doctor = get_object_or_404(Doctor, uuid=uuid_obj)
+    except (ValueError, TypeError):
+        # Fallback to integer ID for backward compatibility
+        doctor = get_object_or_404(Doctor, pk=int(pk))
 
     if request.method == "GET":
         schedules = DoctorSchedule.objects.filter(doctor=doctor)
@@ -571,12 +607,27 @@ class DoctorScheduleListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         doctor_pk = self.kwargs["doctor_pk"]
+        # Support both UUID and integer ID lookups
+        try:
+            import uuid as uuid_module
+            uuid_obj = uuid_module.UUID(str(doctor_pk))
+            doctor = get_object_or_404(Doctor, uuid=uuid_obj)
+        except (ValueError, TypeError):
+            # Fallback to integer ID for backward compatibility
+            doctor = get_object_or_404(Doctor, pk=int(doctor_pk))
         doctor = get_object_or_404(Doctor, pk=doctor_pk)
         return DoctorSchedule.objects.filter(doctor=doctor)
 
     def perform_create(self, serializer):
         doctor_pk = self.kwargs["doctor_pk"]
-        doctor = get_object_or_404(Doctor, pk=doctor_pk)
+        # Support both UUID and integer ID lookups
+        try:
+            import uuid as uuid_module
+            uuid_obj = uuid_module.UUID(str(doctor_pk))
+            doctor = get_object_or_404(Doctor, uuid=uuid_obj)
+        except (ValueError, TypeError):
+            # Fallback to integer ID for backward compatibility
+            doctor = get_object_or_404(Doctor, pk=int(doctor_pk))
         # Check permissions for creating schedule
         if self.request.user != doctor.user and self.request.user.user_type not in [
             "admin",
@@ -621,81 +672,32 @@ class DoctorScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class SpecialtyChoicesAPIView(APIView):
     def get(self, request):
-        # Custom specialties list as requested by user
-        custom_specialties = [
-            {"value": "general_practitioner", "label": "Врач общей практики (терапевт)"},
-            {"value": "pediatrician", "label": "Педиатр (детский врач)"},
-            {"value": "family_doctor", "label": "Семейный врач"},
-            {"value": "cardiologist", "label": "Кардиолог"},
-            {"value": "vascular_surgeon", "label": "Сосудистый хирург"},
-            {"value": "hematologist", "label": "Гематолог"},
-            {"value": "pulmonologist", "label": "Пульмонолог (лёгкие)"},
-            {"value": "phthisiologist", "label": "Фтизиатр (туберкулёз)"},
-            {"value": "gastroenterologist", "label": "Гастроэнтеролог"},
-            {"value": "proctologist", "label": "Проктолог (колопроктолог)"},
-            {"value": "hepatologist", "label": "Гепатолог (печень)"},
-            {"value": "urologist", "label": "Уролог"},
-            {"value": "andrologist", "label": "Андролог (мужское здоровье)"},
-            {"value": "nephrologist", "label": "Нефролог (почки)"},
-            {"value": "gynecologist", "label": "Гинеколог"},
-            {"value": "reproductologist", "label": "Репродуктолог (ЭКО, бесплодие)"},
-            {"value": "obstetrician_gynecologist", "label": "Акушер-гинеколог"},
-            {"value": "endocrinologist", "label": "Эндокринолог (щитовидка, диабет)"},
-            {"value": "neurologist", "label": "Невролог"},
-            {"value": "neurosurgeon", "label": "Нейрохирург"},
-            {"value": "psychiatrist", "label": "Психиатр"},
-            {"value": "psychotherapist", "label": "Психотерапевт"},
-            {"value": "narcologist", "label": "Нарколог"},
-            {"value": "pediatric_cardiologist", "label": "Детский кардиолог"},
-            {"value": "pediatric_neurologist", "label": "Детский невролог"},
-            {"value": "pediatric_endocrinologist", "label": "Детский эндокринолог"},
-            {"value": "pediatric_surgeon", "label": "Детский хирург"},
-            {"value": "neonatologist", "label": "Неонатолог"},
-            {"value": "general_surgeon", "label": "Хирург общей практики"},
-            {"value": "traumatologist_orthopedist", "label": "Травматолог-ортопед"},
-            {"value": "oncosurgeon", "label": "Онкохирург"},
-            {"value": "plastic_surgeon", "label": "Пластический хирург"},
-            {"value": "maxillofacial_surgeon", "label": "Челюстно-лицевой хирург"},
-            {"value": "thoracic_surgeon", "label": "Торакальный хирург"},
-            {"value": "cardiosurgeon", "label": "Кардиохирург"},
-            {"value": "ophthalmologist", "label": "Офтальмолог (глазной врач)"},
-            {"value": "otolaryngologist", "label": "Отоларинголог (ЛОР)"},
-            {"value": "audiologist", "label": "Сурдолог (слух)"},
-            {"value": "dermatologist", "label": "Дерматолог"},
-            {"value": "cosmetologist", "label": "Косметолог"},
-            {"value": "venereologist", "label": "Венеролог"},
-            {"value": "oncologist", "label": "Онколог"},
-            {"value": "pediatric_oncologist", "label": "Детский онколог"},
-            {"value": "radiologist", "label": "Радиолог (рентген, МРТ, КТ)"},
-            {"value": "ultrasound_specialist", "label": "УЗИ-диагност"},
-            {"value": "laboratory_technician", "label": "Лаборант (клиническая лаборатория)"},
-            {"value": "pathologist", "label": "Патологоанатом"},
-            {"value": "geneticist", "label": "Генетик"},
-            {"value": "physiotherapist", "label": "Физиотерапевт"},
-            {"value": "rehabilitologist", "label": "Реабилитолог"},
-            {"value": "exercise_therapist", "label": "ЛФК-врач"},
-            {"value": "palliative_doctor", "label": "Паллиативный врач"},
-            {"value": "anesthesiologist_resuscitator", "label": "Анестезиолог-реаниматолог"},
-            {"value": "emergency_doctor", "label": "Врач скорой помощи"},
-            {"value": "toxicologist", "label": "Токсиколог"},
-            {"value": "epidemiologist", "label": "Врач-эпидемиолог"},
-            {"value": "hygienist", "label": "Врач-гигиенист"},
-            {"value": "preventive_medicine_doctor", "label": "Врач по медико-профилактическому делу"},
-            {"value": "dental_therapist", "label": "Стоматолог-терапевт"},
-            {"value": "dental_surgeon", "label": "Стоматолог-хирург"},
-            {"value": "dental_orthopedist", "label": "Стоматолог-ортопед"},
-            {"value": "orthodontist", "label": "Ортодонт"},
-            {"value": "pediatric_dentist", "label": "Детский стоматолог"},
-            {"value": "implantologist", "label": "Имплантолог"},
-            {"value": "sports_doctor", "label": "Спортивный врач"},
-            {"value": "forensic_medical_expert", "label": "Судебно-медицинский эксперт"},
-            {"value": "disaster_medicine_doctor", "label": "Врач медицины катастроф"}
+        """
+        Get all specializations from Specialization model (database).
+        Returns all active specializations that can be managed via Django admin.
+        """
+        # Get ALL active specializations from database (model)
+        specializations = Specialization.objects.filter(is_active=True).order_by('label')
+        
+        # Return from database - this includes all specializations added via Django admin
+        specialties_data = [
+            {
+                "value": spec.value,
+                "label": spec.label,
+                "id": spec.id,  # Include ID for reference
+                "description": spec.description or "",  # Include description if available
+            }
+            for spec in specializations
         ]
+        
+        # If database is empty, return empty list (no fallback to hardcoded)
+        # Admin should add specializations via Django admin panel
         
         return Response({
             "success": True,
-            "data": custom_specialties,
-            "count": len(custom_specialties)
+            "data": specialties_data,
+            "count": len(specialties_data),
+            "message": f"Found {len(specialties_data)} active specializations in database"
         })
 
 
@@ -761,7 +763,7 @@ class DoctorProfilePageView(APIView):
     def get(self, request):
         """Get complete doctor profile for the profile page"""
         try:
-            doctor = Doctor.objects.select_related('user').get(user=request.user)
+            doctor = Doctor.objects.select_related('user').prefetch_related('specializations').get(user=request.user)
             serializer = DoctorProfilePageSerializer(doctor)
             return Response({
                 "success": True,
@@ -784,7 +786,7 @@ class DoctorProfilePageView(APIView):
     def patch(self, request):
         """Update doctor profile from the profile page"""
         try:
-            doctor = Doctor.objects.get(user=request.user)
+            doctor = Doctor.objects.prefetch_related('specializations').get(user=request.user)
 
             # Work on a mutable copy of incoming data
             data = request.data.copy()
@@ -814,9 +816,41 @@ class DoctorProfilePageView(APIView):
                     except Exception:
                         pass
 
-            # Coerce specialization from str -> list[str] if needed
+            # Handle specializations - convert labels to values if needed for ManyToMany
+            if 'specializations' in data:
+                specializations = data.get('specializations', [])
+                if isinstance(specializations, list):
+                    # Convert labels to values using SPECIALTIES mapping
+                    specialty_map = {label: value for value, label in Doctor.SPECIALTIES}
+                    converted_specs = []
+                    for spec in specializations:
+                        # If it's already a value (snake_case or matches a key), use it
+                        if spec in [k for k, _ in Doctor.SPECIALTIES]:
+                            converted_specs.append(spec)
+                        # Otherwise, try to find the value from label
+                        elif spec in specialty_map:
+                            converted_specs.append(specialty_map[spec])
+                        # If not found, try to find by matching label (case-insensitive)
+                        else:
+                            found = False
+                            for value, label in Doctor.SPECIALTIES:
+                                if label.lower() == spec.lower():
+                                    converted_specs.append(value)
+                                    found = True
+                                    break
+                            if not found:
+                                # Keep original if can't convert
+                                converted_specs.append(spec)
+                    data['specializations'] = converted_specs
+                elif isinstance(specializations, str):
+                    data['specializations'] = [specializations]
+            
+            # Legacy: Coerce specialization from str -> list[str] if needed (for backward compatibility)
             if 'specialization' in data and isinstance(data.get('specialization'), str):
-                data['specialization'] = [data.get('specialization')]
+                # Convert to specializations if not already present
+                if 'specializations' not in data:
+                    data['specializations'] = [data.get('specialization')]
+                del data['specialization']
 
             # Convert nulls to empty strings for string fields that allow blanks
             nullable_string_fields = [

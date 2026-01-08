@@ -30,11 +30,12 @@ urlpatterns = [
     path('specialties/choices/', SpecialtyChoicesAPIView.as_view(), name='specialty-choices'),
     
     # Doctor specific endpoints (dynamic pk patterns - MUST come after static patterns)
-    path('<int:pk>/', DoctorDetailView.as_view(), name='doctor-detail'),
-    path('<int:pk>/stats/', doctor_dashboard_stats, name='doctor-stats'),
+    # Support both UUID and integer ID for backward compatibility
+    path('<str:pk>/', DoctorDetailView.as_view(), name='doctor-detail'),
+    path('<str:pk>/stats/', doctor_dashboard_stats, name='doctor-stats'),
     
     # Doctor Schedule URLs
-    path('<int:doctor_pk>/schedule/', doctor_schedule, name='doctor-schedule'),
-    path('<int:doctor_pk>/schedules/', DoctorScheduleListView.as_view(), name='doctor-schedules-list'),
-    path('<int:doctor_pk>/schedules/<int:pk>/', DoctorScheduleDetailView.as_view(), name='doctor-schedules-detail'),
+    path('<str:doctor_pk>/schedule/', doctor_schedule, name='doctor-schedule'),
+    path('<str:doctor_pk>/schedules/', DoctorScheduleListView.as_view(), name='doctor-schedules-list'),
+    path('<str:doctor_pk>/schedules/<int:pk>/', DoctorScheduleDetailView.as_view(), name='doctor-schedules-detail'),
 ]
