@@ -39,12 +39,24 @@ else:
     client = OpenAI(api_key=openai_api_key)
 
 
-def add_cors_headers(response):
-    """Add CORS headers to response"""
-    response["Access-Control-Allow-Origin"] = "*"
-    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-    response["Access-Control-Allow-Credentials"] = "true"
+def add_cors_headers(response, request=None):
+    """Add CORS headers to response - allows all origins"""
+    # Echo back the origin if provided
+    # When credentials are enabled, we MUST echo back the exact origin (cannot use *)
+    if request:
+        origin = request.META.get('HTTP_ORIGIN')
+        if origin:
+            response["Access-Control-Allow-Origin"] = origin
+            response["Access-Control-Allow-Credentials"] = "true"
+        else:
+            # No origin header means it's likely a same-origin request
+            response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRFToken"
+    response["Access-Control-Max-Age"] = "86400"
+    response["Access-Control-Expose-Headers"] = "Content-Type, X-CSRFToken"
     return response
 
 
@@ -425,7 +437,7 @@ def analyze_medical_form(request):
     """
     if request.method == 'OPTIONS':
         response = Response({})
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
     
     # Check authentication for POST requests
     if not request.user.is_authenticated:
@@ -433,7 +445,7 @@ def analyze_medical_form(request):
             {"error": "Требуется авторизация", "status": "error"},
             status=status.HTTP_401_UNAUTHORIZED
         )
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
     
     try:
         form_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
@@ -566,7 +578,7 @@ Important: AviShifo must strictly adhere to the principles of medical ethics and
             "analysis": analysis,
             "status": "success"
         })
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
         
     except Exception as e:
         print(f"Error in analyze_medical_form: {e}")
@@ -578,7 +590,7 @@ Important: AviShifo must strictly adhere to the principles of medical ethics and
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
 
 
 def format_medical_form_data(form_data):
@@ -837,15 +849,15 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
     
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
     
     def retrieve(self, request, *args, **kwargs):
         response = super().retrieve(request, *args, **kwargs)
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
 
     def destroy(self, request, *args, **kwargs):
         """Delete a chat session and all its messages"""
@@ -868,7 +880,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         # Handle preflight OPTIONS request
         if request.method == "OPTIONS":
             response = Response()
-            return add_cors_headers(response)
+            return add_cors_headers(response, request)
             
         try:
             session = self.get_object()
@@ -885,7 +897,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                     {"error": "Message content is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-                return add_cors_headers(response)
+                return add_cors_headers(response, request)
 
             # Generate title for the chat session if it's the first message
             if not session.title and session.messages.count() == 0:
@@ -931,7 +943,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 )
 
                 response = Response({"reply": assistant_reply, "model_used": model_to_use})
-                return add_cors_headers(response)
+                return add_cors_headers(response, request)
 
             except Exception as openai_error:
                 print(f"OpenAI API error: {openai_error}")
@@ -952,7 +964,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                     },
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
-                return add_cors_headers(response)
+                return add_cors_headers(response, request)
 
         except Exception as e:
             print(f"Error in send_message: {e}")
@@ -960,7 +972,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 {"error": "Internal server error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            return add_cors_headers(response)
+            return add_cors_headers(response, request)
 
     @action(detail=True, methods=["post", "options"])
     def send_image(self, request, pk=None):
@@ -968,7 +980,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         # Handle preflight OPTIONS request
         if request.method == "OPTIONS":
             response = Response()
-            return add_cors_headers(response)
+            return add_cors_headers(response, request)
             
         try:
             session = self.get_object()
@@ -978,7 +990,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 response = Response(
                     {"error": "Rasm yuborilmadi"}, status=status.HTTP_400_BAD_REQUEST
                 )
-                return add_cors_headers(response)
+                return add_cors_headers(response, request)
 
             # Convert image to base64
             image_bytes = image_file.read()
@@ -1067,7 +1079,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             )
 
             response = Response({"reply": analysis, "model_used": "gpt-4o"})
-            return add_cors_headers(response)
+            return add_cors_headers(response, request)
 
         except Exception as e:
             print(f"Error in send_image: {e}")
@@ -1082,7 +1094,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
                 {"reply": fallback_reply, "model_used": "error", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            return add_cors_headers(response)
+            return add_cors_headers(response, request)
 
     @action(detail=True, methods=["post"])
     def send_message_radiolog(self, request, pk=None):
@@ -1508,7 +1520,7 @@ def analyze_instrumental_image(request):
     """
     if request.method == 'OPTIONS':
         response = Response({})
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
     
     try:
         image_file = request.FILES.get("image")
@@ -1562,7 +1574,7 @@ def analyze_instrumental_image(request):
             "model_used": "gpt-4o",
             "status": "success"
         })
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)
         
     except Exception as e:
         print(f"Error in analyze_instrumental_image: {e}")
@@ -1583,4 +1595,4 @@ def analyze_instrumental_image(request):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-        return add_cors_headers(response)
+        return add_cors_headers(response, request)

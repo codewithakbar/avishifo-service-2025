@@ -24,10 +24,14 @@ class CustomCorsMiddleware(MiddlewareMixin):
         """Add CORS headers to response - allows all origins"""
         origin = request.META.get('HTTP_ORIGIN')
         
-        # Allow all origins - echo back the origin if provided, otherwise use *
+        # Allow all origins - echo back the origin if provided
+        # When credentials are enabled, we MUST echo back the exact origin (cannot use *)
         if origin:
             response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Credentials'] = 'true'
         else:
+            # No origin header means it's likely a same-origin request
+            # Set * for non-credential requests, but don't set credentials
             response['Access-Control-Allow-Origin'] = '*'
         
         response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
@@ -35,7 +39,6 @@ class CustomCorsMiddleware(MiddlewareMixin):
             'Content-Type, Authorization, X-Requested-With, '
             'Accept, Origin, X-CSRFToken, Cache-Control, Pragma'
         )
-        response['Access-Control-Allow-Credentials'] = 'true'
         response['Access-Control-Max-Age'] = '86400'
         response['Access-Control-Expose-Headers'] = 'Content-Type, X-CSRFToken'
         
